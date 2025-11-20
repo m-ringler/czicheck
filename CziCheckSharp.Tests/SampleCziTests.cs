@@ -1,4 +1,8 @@
-﻿namespace CziCheckSharp.Tests;
+﻿// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+//
+// SPDX-License-Identifier: MIT
+
+namespace CziCheckSharp.Tests;
 
 using System;
 using System.Runtime.CompilerServices;

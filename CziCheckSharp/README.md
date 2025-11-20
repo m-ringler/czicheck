@@ -10,6 +10,7 @@ CziCheckSharp provides a type-safe C# API for validating CZI files using the nat
 - Configurable validation checks
 - JSON output parsing
 - Proper resource management through `IDisposable`
+- **Cross-platform support** with native libraries bundled for Windows (x64) and Linux (x64)
 
 ## Installation
 
@@ -17,7 +18,7 @@ CziCheckSharp provides a type-safe C# API for validating CZI files using the nat
 dotnet add package m-ringler.CziCheckSharp
 ```
 
-**Important:** This package requires the native `libczicheckc` library (DLL on Windows, SO on Linux) to be available at runtime. See [Native Library Requirements](#native-library-requirements) below.
+The NuGet package includes the native libraries for supported platforms, so no additional installation steps are required.
 
 ## Quick Start
 
@@ -45,6 +46,17 @@ else
     }
 }
 ```
+
+## Platform Support
+
+This package includes native libraries for the following platforms:
+
+- **Windows x64**: `libczicheckc.dll` (included in package)
+- **Linux x64**: `libczicheckc.so` (included in package)
+
+The appropriate library is automatically loaded based on your runtime platform. No additional configuration is required.
+
+> **Note:** Other platforms (ARM64, macOS, 32-bit systems) are not currently supported. If you need support for additional platforms, you can build the native library yourself and use a custom DLL import resolver.
 
 ## Configuration
 
@@ -115,20 +127,9 @@ public class Finding
 }
 ```
 
-## Native Library Requirements
+## Advanced: Custom Native Library Path
 
-This package requires the native `libczicheckc` library at runtime:
-
-- **Windows**: `libczicheckc.dll`
-- **Linux**: `libczicheckc.so`
-
-### Deployment Options
-
-1. **Include in your application**: Place the native library in your application's output directory
-2. **System-wide installation**: Install the library in a system directory (e.g., `/usr/lib` on Linux)
-3. **Custom path**: Use `NativeLibrary.SetDllImportResolver` to specify a custom location
-
-Example of custom resolver:
+In most cases, the bundled native libraries work automatically. However, if you need to use a custom-built native library or specify a different location, you can use `NativeLibrary.SetDllImportResolver`:
 
 ```csharp
 using System.Runtime.InteropServices;
@@ -137,7 +138,8 @@ NativeLibrary.SetDllImportResolver(typeof(CziChecker).Assembly, (libraryName, as
 {
     if (libraryName == "libczicheckc")
     {
-        return NativeLibrary.Load("path/to/libczicheckc.dll");
+        // Load from custom path
+        return NativeLibrary.Load("/custom/path/to/libczicheckc.so");
     }
     return IntPtr.Zero;
 });
@@ -145,7 +147,7 @@ NativeLibrary.SetDllImportResolver(typeof(CziChecker).Assembly, (libraryName, as
 
 ### Building the Native Library
 
-If you need to build the native library yourself:
+If you need to build the native library yourself (e.g., for unsupported platforms):
 
 ```bash
 # Clone the repository
@@ -208,7 +210,7 @@ if (!string.IsNullOrEmpty(result.ErrorOutput))
 
 Common error scenarios:
 - **File not found**: Check the file path
-- **DllNotFoundException**: Native library not found (see [Native Library Requirements](#native-library-requirements))
+- **DllNotFoundException**: This should not occur with the NuGet package as native libraries are bundled. If it does occur, ensure you're using a supported platform (Windows x64 or Linux x64)
 - **Unavailable checks**: Some checks (e.g., `HasXmlSchemaValidMetadata`) may not be available if the native library wasn't compiled with required dependencies
 
 ## Version Information
