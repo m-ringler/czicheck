@@ -21,10 +21,10 @@ internal sealed class Validator : IDisposable
         ArgumentNullException.ThrowIfNull(configuration);
         
         this.handle = NativeMethods.CreateValidator(
-            (ulong)configuration.Checks,
-            configuration.MaxFindings,
-            configuration.LaxParsing,
-            configuration.IgnoreSizeM);
+            checksBitmask: (ulong)configuration.Checks,
+            maxFindings: configuration.MaxFindings,
+            laxParsing: configuration.LaxParsing,
+            ignoreSizeM: configuration.IgnoreSizeM);
         
         if (this.handle == nint.Zero)
         {
@@ -54,12 +54,12 @@ internal sealed class Validator : IDisposable
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
         return NativeMethods.ValidateFile(
-            this.handle,
-            inputPath,
-            jsonBuffer,
-            ref jsonBufferSize,
-            errorMessage,
-            ref errorMessageLength);
+            validator: this.handle,
+            inputPath: inputPath,
+            jsonBuffer: jsonBuffer,
+            jsonBufferSize: ref jsonBufferSize,
+            errorMessage: errorMessage,
+            errorMessageLength: ref errorMessageLength);
     }
 
     /// <summary>

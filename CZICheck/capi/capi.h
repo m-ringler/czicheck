@@ -70,6 +70,7 @@ extern "C" CAPI_EXPORT void* CreateValidator(uint64_t checks_bitmask, int32_t ma
  *             Return value 1: json_buffer_size too small (required size written to json_buffer_size).
  *             Return value 2: File access error (error details in error_message if provided).
  *             Return value 3: Invalid validator pointer.
+ *             Return value 4: One or more requested checks are not available (error details in error_message if provided).
  */
 extern "C" CAPI_EXPORT int ValidateFile(void* validator, const char* input_path, 
                                         char* json_buffer, uint64_t* json_buffer_size,

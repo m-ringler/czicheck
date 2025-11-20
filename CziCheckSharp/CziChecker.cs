@@ -146,6 +146,9 @@ public class CziChecker(Configuration configuration) : IDisposable
                     2 => CreateErrorResult(
                         "File access error: Could not open or read the CZI file.",
                         errorOutput),
+                    4 => CreateErrorResult(
+                        "One or more requested checks are not available.",
+                        errorOutput),
                     _ => CreateErrorResult(
                         $"Validation failed with error code {result}.",
                         errorOutput)

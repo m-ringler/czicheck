@@ -129,6 +129,47 @@ private:
         return checks;
     }
     
+    static std::string GetCheckName(CZIChecks checkType)
+    {
+        switch (checkType)
+        {
+            case CZIChecks::SubBlockDirectoryPositionsWithinRange: 
+                return "CZICHECK_HAS_VALID_SUBBLOCK_POSITIONS";
+            case CZIChecks::SubBlockDirectorySegmentValid: 
+                return "CZICHECK_HAS_VALID_SUBBLOCK_SEGMENTS";
+            case CZIChecks::ConsistentSubBlockCoordinates: 
+                return "CZICHECK_HAS_CONSISTENT_SUBBLOCK_DIMENSIONS";
+            case CZIChecks::DuplicateSubBlockCoordinates: 
+                return "CZICHECK_HAS_NO_DUPLICATE_SUBBLOCK_COORDINATES";
+            case CZIChecks::BenabledDocument: 
+                return "CZICHECK_DOES_NOT_USE_BINDEX";
+            case CZIChecks::SamePixeltypePerChannel: 
+                return "CZICHECK_HAS_ONLY_ONE_PIXELTYPE_PER_CHANNEL";
+            case CZIChecks::PlanesIndicesStartAtZero: 
+                return "CZICHECK_HAS_PLANE_INDICES_STARTING_AT_ZERO";
+            case CZIChecks::PlaneIndicesAreConsecutive: 
+                return "CZICHECK_HAS_CONSECUTIVE_PLANE_INDICES";
+            case CZIChecks::SubblocksHaveMindex: 
+                return "CZICHECK_ALL_SUBBLOCKS_HAVE_MINDEX";
+            case CZIChecks::BasicMetadataValidation: 
+                return "CZICHECK_HAS_BASICALLY_VALID_METADATA";
+            case CZIChecks::XmlMetadataSchemaValidation: 
+                return "CZICHECK_HAS_XML_SCHEMA_VALID_METADATA";
+            case CZIChecks::CCheckOverlappingScenesOnLayer0: 
+                return "CZICHECK_HAS_NO_OVERLAPPING_SCENES_AT_SCALE1";
+            case CZIChecks::CheckSubBlockBitmapValid: 
+                return "CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS";
+            case CZIChecks::ConsistentMIndex: 
+                return "CZICHECK_HAS_CONSISTENT_MINDICES";
+            case CZIChecks::AttachmentDirectoryPositionsWithinRange: 
+                return "CZICHECK_HAS_VALID_ATTACHMENT_DIR_POSITIONS";
+            case CZIChecks::ApplianceMetadataTopographyItemValid: 
+                return "CZICHECK_HAS_VALID_APPLIANCE_METADATA_TOPOGRAPHY";
+            default: 
+                return "UNKNOWN_CHECK";
+        }
+    }
+    
 public:
     CziValidator(uint64_t checks_bitmask, int32_t max_findings, bool lax_parsing, bool ignore_sizem)
         : checks_(BitmaskToChecks(checks_bitmask)), max_findings_(max_findings),
@@ -204,10 +245,31 @@ public:
             }
             
             // Run all checks
+            std::vector<std::string> missing_checkers;
             for (auto checkType : checks_)
             {
                 auto checker = CCheckerFactory::CreateChecker(checkType, spReader, *resultsGatherer, checkerAdditionalInfo);
-                checker->RunCheck();
+                if (checker != nullptr)
+                {
+                    checker->RunCheck();
+                }
+                else
+                {
+                    // Checker could not be created - track this
+                    missing_checkers.push_back(GetCheckName(checkType));
+                }
+            }
+            
+            // If some checkers couldn't be created, report as error
+            if (!missing_checkers.empty())
+            {
+                error_message = "The following checks could not be performed (possibly not compiled in): ";
+                for (size_t i = 0; i < missing_checkers.size(); ++i)
+                {
+                    if (i > 0) error_message += ", ";
+                    error_message += missing_checkers[i];
+                }
+                return 4;  // Requested checks not available
             }
             
             // Finalize and get JSON result
