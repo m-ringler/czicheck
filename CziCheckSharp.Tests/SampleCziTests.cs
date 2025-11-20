@@ -4,40 +4,77 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
+/// <summary>
+/// This test class runs the same tests as
+/// $(repo)/CZICheck/test/CZICheckRunTests.py,
+/// using the C# wrapper of czi-check.
+/// It also uses the same CZI sample files, downloading them if necessary.
+/// </summary>
 public class SampleCziTests
 {
-    private static readonly string[] baseUrls = 
+    // From $(repo)/CZICheck/CMakeLists.txt
+    private static readonly string[] TestDataRepos = 
     [
         "https://libczirwtestdata.z13.web.core.windows.net/CZICheckSamples/MD5/",
         "https://github.com/ptahmose/libCZI_testdata/raw/main/MD5/",
     ];
 
+    /// <summary>
+    /// Tests that we have at least one test case.
+    /// </summary>
+    /// <remarks>
+    /// This test is useful for debugging the generation of the theory data.
+    /// </remarks>
     [Fact]
-    public void DebugTheoryDataGen()
+    public void TheoryDataIsNotEmpty()
     {
         var testData = GetSampleCziTestData();
-        Assert.NotEmpty(testData);
+        _ = testData.Should().NotBeEmpty();
     }
 
     [Theory]
     [MemberData(nameof(GetSampleCziTestData))]
-    public async Task RunAll(string cziFilePath, string md5Content, string expectedJsonContent)
+    public async Task RunAll(
+        string cziFilePath,
+        string md5Content,
+        string expectedJsonContent)
     {
+        // ARRANGE
         _ = expectedJsonContent;
-        await Ensure(cziFilePath, md5Content.Trim());
+        var md5 = md5Content.Trim();
+        await Ensure(cziFilePath, md5);
+       _ = GetFileMd5(cziFilePath).Should().Be(md5);
 
         CziCheckResult actual;
-        using (var checker = new CziChecker(new Configuration { LaxParsing = true }))
+        var config = new Configuration
         {
-            actual = checker.Check(cziFilePath);
+            LaxParsing = true,
+            Checks = Checks.All,
+        };
+
+        // ACT
+        using (var sut = new CziChecker(config))
+        {
+            actual = sut.Check(cziFilePath);
         }
 
-        Console.WriteLine(JsonSerializer.Serialize(actual));
-        var expected = CziCheckResult.FromJson(expectedJsonContent, actual.ErrorOutput);
+        // ASSERT
+        var expected = CziCheckResult.FromJson(
+            expectedJsonContent,
+            actual.ErrorOutput); // We don't have an expected error output
 
-        Assert.Equal(
-            expected,
-            actual);
+        try
+        {
+            _ = actual.Should().BeEquivalentTo(expected);
+        }
+        catch
+        {
+            Console.WriteLine("==ACTUAL==");
+            Console.WriteLine(JsonSerializer.Serialize(actual));
+            Console.WriteLine("==EXPECTED==");
+            Console.WriteLine(JsonSerializer.Serialize(expected));
+            throw;
+        }
     }
 
     public static TheoryData<string, string, string> GetSampleCziTestData()
@@ -48,14 +85,9 @@ public class SampleCziTests
     private static TheoryData<string, string, string> GetSampleCziTestDataCore(
         [CallerFilePath] string? sourceFilePath = null)
     {
-        var sourceDirectory = Path.GetDirectoryName(sourceFilePath) ?? string.Empty;
-        
-        // Navigate from CziCheckSharp.Tests to Test/CZICheckSamples
-        var repoRoot = Path.GetFullPath(Path.Combine(sourceDirectory, ".."));
-        var cziCheckSamplesPath = Path.Combine(repoRoot, "Test", "CZICheckSamples");
-
+        var cziCheckSamplesPath = GetTestDataFolder(sourceFilePath);
         var testData = new TheoryData<string, string, string>();
-        
+
         if (!Directory.Exists(cziCheckSamplesPath))
         {
             return testData;
@@ -63,38 +95,56 @@ public class SampleCziTests
 
         // Find all .czi.md5 files
         var md5Files = Directory.GetFiles(cziCheckSamplesPath, "*.czi.md5");
-        
+
         foreach (var md5File in md5Files)
         {
             // Get the base name (without .czi.md5 extension)
-            var baseName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(md5File));
-            var jsonFile = Path.Combine(cziCheckSamplesPath, $"{baseName}.txt.json");
-            
+            var baseName = Path.GetFullPath(md5File[..^".czi.md5".Length]);
+            var jsonFile = baseName + ".txt.json";
+
             // Only add if both files exist
             if (File.Exists(jsonFile))
             {
-                var cziFile = Path.GetFullPath(
-                    md5File.Substring(0, md5File.Length - ".md5".Length));
+                var cziFile = baseName + ".czi";
                 var md5Content = File.ReadAllText(md5File);
                 var jsonContent = File.ReadAllText(jsonFile);
                 testData.Add(cziFile, md5Content, jsonContent);
             }
         }
-        
+
         return testData;
+    }
+
+    private static string GetTestDataFolder(string? sourceFilePath)
+    {
+        var sourceDirectory = Path.GetDirectoryName(sourceFilePath) ?? string.Empty;
+
+        // Construct the test data folder path
+        var repoRoot = Path.GetFullPath(
+            Path.Combine(sourceDirectory, ".."));
+
+        var cziCheckSamplesPath =
+            Path.Combine(repoRoot, "Test", "CZICheckSamples");
+        return cziCheckSamplesPath;
     }
 
     private static async Task Ensure(string cziFilePath, string md5)
     {
         if (File.Exists(cziFilePath))
         {
+            // Verify MD5 if file exists
+            var actualMd5 = GetFileMd5(cziFilePath);
+            if (!string.Equals(actualMd5, md5, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"MD5 mismatch for existing file: {cziFilePath}. Expected: {md5}, Actual: {actualMd5}");
+            }
             return;
         }
 
         // Try each base URL until one succeeds
         Exception? lastException = null;
         
-        foreach (var baseUrl in baseUrls)
+        foreach (var baseUrl in TestDataRepos)
         {
             try
             {
@@ -116,7 +166,7 @@ public class SampleCziTests
                 {
                     await response.Content.CopyToAsync(fileStream);
                 }
-                
+
                 return; // Success
             }
             catch (HttpRequestException ex)
@@ -135,5 +185,13 @@ public class SampleCziTests
         throw new InvalidOperationException(
             $"Failed to download file from any base URL for MD5: {md5}", 
             lastException);
+    }
+
+    private static string GetFileMd5(string filePath)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        using var stream = File.OpenRead(filePath);
+        var hash = md5.ComputeHash(stream);
+        return BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant();
     }
 }
