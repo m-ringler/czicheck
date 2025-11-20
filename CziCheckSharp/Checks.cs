@@ -95,17 +95,19 @@ public enum Checks : ulong
     /// </summary>
     HasValidSubBlockBitmaps = 0x1000UL,
 
+#if FUTURE_CHECKS
     /// <summary>
     /// Check for consistent M-Index usage (ConsistentMIndex).
-    /// Part of default set.
+    /// Not yet implemented.
     /// </summary>
     HasConsistentMIndices = 0x2000UL,
 
     /// <summary>
     /// Attachment directory positions within file range (AttachmentDirectoryPositionsWithinRange).
-    /// Part of default set.
+    /// Not yet implemented.
     /// </summary>
     HasValidAttachmentDirPositions = 0x4000UL,
+#endif
 
     /// <summary>
     /// Basic semantic checks for TopographyDataItems (topographymetadata).

@@ -119,10 +119,12 @@ private:
             checks.push_back(CZIChecks::CCheckOverlappingScenesOnLayer0);
         if (bitmask & CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS)
             checks.push_back(CZIChecks::CheckSubBlockBitmapValid);
+#if FUTURE_CHECKS
         if (bitmask & CZICHECK_HAS_CONSISTENT_MINDICES)
             checks.push_back(CZIChecks::ConsistentMIndex);
         if (bitmask & CZICHECK_HAS_VALID_ATTACHMENT_DIR_POSITIONS)
             checks.push_back(CZIChecks::AttachmentDirectoryPositionsWithinRange);
+#endif
         if (bitmask & CZICHECK_HAS_VALID_APPLIANCE_METADATA_TOPOGRAPHY)
             checks.push_back(CZIChecks::ApplianceMetadataTopographyItemValid);
             
@@ -159,10 +161,12 @@ private:
                 return "CZICHECK_HAS_NO_OVERLAPPING_SCENES_AT_SCALE1";
             case CZIChecks::CheckSubBlockBitmapValid: 
                 return "CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS";
+#if FUTURE_CHECKS
             case CZIChecks::ConsistentMIndex: 
                 return "CZICHECK_HAS_CONSISTENT_MINDICES";
             case CZIChecks::AttachmentDirectoryPositionsWithinRange: 
                 return "CZICHECK_HAS_VALID_ATTACHMENT_DIR_POSITIONS";
+#endif
             case CZIChecks::ApplianceMetadataTopographyItemValid: 
                 return "CZICHECK_HAS_VALID_APPLIANCE_METADATA_TOPOGRAPHY";
             default: 
