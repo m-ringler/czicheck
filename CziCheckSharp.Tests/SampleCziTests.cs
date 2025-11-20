@@ -1,4 +1,4 @@
-﻿// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
 //
 // SPDX-License-Identifier: MIT
 
@@ -47,7 +47,7 @@ public class SampleCziTests
         _ = expectedJsonContent;
         var md5 = md5Content.Trim();
         await Ensure(cziFilePath, md5);
-       _ = GetFileMd5(cziFilePath).Should().Be(md5);
+        _ = GetFileMd5(cziFilePath).Should().Be(md5);
 
         CziCheckResult actual;
         var config = new Configuration

@@ -63,8 +63,8 @@ private:
     
 public:
     CValidatorOptions(const std::vector<CZIChecks>& checks, int max_findings, bool lax_parsing, bool ignore_sizem)
-        : checks_enabled_(checks), max_findings_(max_findings), lax_parsing_(lax_parsing), 
-          ignore_sizem_(ignore_sizem), log_(CNullLog::CreateInstance())
+        : checks_enabled_(checks), max_findings_(max_findings), lax_parsing_(lax_parsing),
+            ignore_sizem_(ignore_sizem), log_(CNullLog::CreateInstance())
     {
     }
     
@@ -177,7 +177,7 @@ private:
 public:
     CziValidator(uint64_t checks_bitmask, int32_t max_findings, bool lax_parsing, bool ignore_sizem)
         : checks_(BitmaskToChecks(checks_bitmask)), max_findings_(max_findings),
-          lax_parsing_(lax_parsing), ignore_sizem_(ignore_sizem)
+            lax_parsing_(lax_parsing), ignore_sizem_(ignore_sizem)
     {
     }
     
@@ -415,9 +415,9 @@ extern "C" CAPI_EXPORT bool GetLibVersionString(char* buffer, uint64_t* size)
         return false;
     }
     
-    std::string version_str = std::string(CZICHECK_VERSION_MAJOR) + "." + 
-                              std::string(CZICHECK_VERSION_MINOR) + "." + 
-                              std::string(CZICHECK_VERSION_PATCH);
+    std::string version_str = std::string(CZICHECK_VERSION_MAJOR) + "." +
+                            std::string(CZICHECK_VERSION_MINOR) + "." +
+                            std::string(CZICHECK_VERSION_PATCH);
     
     uint64_t required_size = version_str.length() + 1;  // +1 for null terminator
     

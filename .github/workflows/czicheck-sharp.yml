@@ -237,7 +237,7 @@ jobs:
       - name: Extract package version
         shell: bash
         run: |
-          NUPKG=$(ls nuget-local/*.nupkg | grep -v '\.snupkg$' | head -n 1)
+          NUPKG=$(echo nuget-local/m-ringler.CziCheckSharp.*.nupkg)
           VERSION=$(basename "$NUPKG" | sed 's/m-ringler\.CziCheckSharp\.\(.*\)\.nupkg/\1/')
           echo "CZICHECK_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Using version: $VERSION"
