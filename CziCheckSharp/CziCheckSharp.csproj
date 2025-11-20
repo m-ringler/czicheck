@@ -7,6 +7,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>CS1591</NoWarn>
 
+    <!-- Native Library Locations (for packaging) -->
+    <Winx64LibLocation></Winx64LibLocation>
+    <Linuxx64LibLocation></Linuxx64LibLocation>
+
     <!-- MinVer Configuration -->
     <MinVerTagPrefix>CziCheckSharp-v</MinVerTagPrefix>
 
@@ -50,6 +54,16 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Include Windows x64 native libraries if location is specified -->
+  <ItemGroup Condition="'$(Winx64LibLocation)' != ''">
+    <Content Include="$(Winx64LibLocation)" PackagePath="runtimes/win-x64/native" Pack="true" />
+  </ItemGroup>
+
+  <!-- Include Linux x64 native libraries if location is specified -->
+  <ItemGroup Condition="'$(Linuxx64LibLocation)' != ''">
+    <Content Include="$(Linuxx64LibLocation)" PackagePath="runtimes/linux-x64/native" Pack="true" />
   </ItemGroup>
 
 </Project>

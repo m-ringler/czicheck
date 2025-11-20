@@ -33,6 +33,7 @@
 
 out/
 build/
+build-test/
 .vs/
 CMakeSettings.json
 
@@ -74,3 +75,7 @@ artifacts/
 
 # Test Files
 *.czi
+
+# NuGet Packages
+*.nupkg
+*.snupkg
