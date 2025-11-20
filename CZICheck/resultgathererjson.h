@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include "IResultGatherer.h"
 #include "cmdlineoptions.h"
 #include "checks.h"
@@ -19,13 +20,14 @@ class CResultGathererJson : public IResultGatherer
 {
 private:
     const CCmdLineOptions& options_;
+    std::ostringstream* output_stream_;  // If non-null, write JSON to this stream instead of console
     
     rapidjson::Document json_document_;
     rapidjson::Value test_results_;
     std::string current_checker_id;
 
 public:
-    explicit CResultGathererJson(const CCmdLineOptions& options);
+    explicit CResultGathererJson(const CCmdLineOptions& options, std::ostringstream* output_stream = nullptr);
     void StartCheck(CZIChecks check) override;
     void ReportFinding(const Finding& finding) override;
     void FinishCheck(CZIChecks check) override;

@@ -12,8 +12,8 @@
 
 using namespace std;
 
-CResultGathererJson::CResultGathererJson(const CCmdLineOptions& options)
-    : options_(options)
+CResultGathererJson::CResultGathererJson(const CCmdLineOptions& options, std::ostringstream* output_stream)
+    : options_(options), output_stream_(output_stream)
 {
     this->json_document_.SetArray();
     this->test_results_ = rapidjson::Value(rapidjson::kArrayType);
@@ -116,5 +116,14 @@ void CResultGathererJson::FinalizeChecks()
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(str_buf);
 
     this->json_document_.Accept(writer);
-    this->options_.GetLog()->WriteStdOut(str_buf.GetString());
+    
+    // Write to output stream if provided, otherwise write to console
+    if (this->output_stream_ != nullptr)
+    {
+        *this->output_stream_ << str_buf.GetString();
+    }
+    else
+    {
+        this->options_.GetLog()->WriteStdOut(str_buf.GetString());
+    }
 }
