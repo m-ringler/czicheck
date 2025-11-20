@@ -1,4 +1,8 @@
-namespace CziCheck.TestHelper;
+// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+//
+// SPDX-License-Identifier: MIT
+
+namespace CziCheckSharp;
 
 /// <summary>
 /// Represents the result of a CZI check operation.
@@ -9,9 +13,9 @@ public class CziCheckResult
 
     public string? OverallResult { get; init; }
 
-    public List<CheckerResult> CheckerResults { get; init; } = [];
+    public IReadOnlyList<CheckerResult> CheckerResults { get; init; } = [];
 
-    public IEnumerable<Finding> Findings => CheckerResults.SelectMany(cr => cr.Findings);
+    public IEnumerable<Finding> Findings => this.CheckerResults.SelectMany(cr => cr.Findings);
 
     public string? Version { get; init; }
 }

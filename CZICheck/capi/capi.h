@@ -13,28 +13,28 @@
 
 // Bitmask constants for CZI validation checks
 // Each bit corresponds to a specific check that can be performed on a CZI file
-#define CZICHECK_SUBBLOCK_DIR_POSITIONS                 0x0001ULL  // SubBlockDirectoryPositionsWithinRange
-#define CZICHECK_SUBBLOCK_SEGMENT_VALID                 0x0002ULL  // SubBlockDirectorySegmentValid
-#define CZICHECK_CONSISTENT_SUBBLOCK_COORDINATES        0x0004ULL  // ConsistentSubBlockCoordinates
-#define CZICHECK_DUPLICATE_SUBBLOCK_COORDINATES         0x0008ULL  // DuplicateSubBlockCoordinates
-#define CZICHECK_BENABLED_DOCUMENT                      0x0010ULL  // BenabledDocument
-#define CZICHECK_SAME_PIXELTYPE_PER_CHANNEL             0x0020ULL  // SamePixeltypePerChannel
-#define CZICHECK_PLANES_START_AT_ZERO                   0x0040ULL  // PlanesIndicesStartAtZero
-#define CZICHECK_PLANES_CONSECUTIVE                     0x0080ULL  // PlaneIndicesAreConsecutive
-#define CZICHECK_SUBBLOCKS_HAVE_MINDEX                  0x0100ULL  // SubblocksHaveMindex
-#define CZICHECK_BASIC_METADATA_VALIDATION              0x0200ULL  // BasicMetadataValidation
-#define CZICHECK_XML_METADATA_SCHEMA_VALIDATION         0x0400ULL  // XmlMetadataSchemaValidation
-#define CZICHECK_OVERLAPPING_SCENES_LAYER0              0x0800ULL  // CCheckOverlappingScenesOnLayer0
-#define CZICHECK_SUBBLOCK_BITMAP_VALID                  0x1000ULL  // CheckSubBlockBitmapValid
-#define CZICHECK_CONSISTENT_MINDEX                      0x2000ULL  // ConsistentMIndex
-#define CZICHECK_ATTACHMENT_DIR_POSITIONS               0x4000ULL  // AttachmentDirectoryPositionsWithinRange
-#define CZICHECK_APPLIANCE_METADATA_TOPOGRAPHY_VALID    0x8000ULL  // ApplianceMetadataTopographyItemValid
+#define CZICHECK_HAS_VALID_SUBBLOCK_POSITIONS                   0x0001ULL
+#define CZICHECK_HAS_VALID_SUBBLOCK_SEGMENTS                    0x0002ULL
+#define CZICHECK_HAS_CONSISTENT_SUBBLOCK_DIMENSIONS             0x0004ULL
+#define CZICHECK_HAS_NO_DUPLICATE_SUBBLOCK_COORDINATES          0x0008ULL
+#define CZICHECK_DOES_NOT_USE_BINDEX                            0x0010ULL
+#define CZICHECK_HAS_ONLY_ONE_PIXELTYPE_PER_CHANNEL             0x0020ULL
+#define CZICHECK_HAS_PLANE_INDICES_STARTING_AT_ZERO             0x0040ULL
+#define CZICHECK_HAS_CONSECUTIVE_PLANE_INDICES                  0x0080ULL
+#define CZICHECK_ALL_SUBBLOCKS_HAVE_MINDEX                      0x0100ULL
+#define CZICHECK_HAS_BASICALLY_VALID_METADATA                   0x0200ULL
+#define CZICHECK_HAS_XML_SCHEMA_VALID_METADATA                  0x0400ULL
+#define CZICHECK_HAS_NO_OVERLAPPING_SCENES_AT_SCALE1            0x0800ULL
+#define CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS                     0x1000ULL
+#define CZICHECK_HAS_CONSISTENT_MINDICES                        0x2000ULL
+#define CZICHECK_HAS_VALID_ATTACHMENT_DIR_POSITIONS             0x4000ULL
+#define CZICHECK_HAS_VALID_APPLIANCE_METADATA_TOPOGRAPHY        0x8000ULL
 
 // Convenience: All checks enabled
 #define CZICHECK_ALL 0xFFFFULL
 
 // Convenience: Default checks (excludes expensive/optional checks like schema validation and bitmap decoding)
-#define CZICHECK_ALL_DEFAULT (CZICHECK_ALL & ~CZICHECK_XML_METADATA_SCHEMA_VALIDATION & ~CZICHECK_SUBBLOCK_BITMAP_VALID)
+#define CZICHECK_ALL_DEFAULT (CZICHECK_ALL & ~CZICHECK_HAS_XML_SCHEMA_VALID_METADATA & ~CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS)
 
 /**
  * Creates a new validator for use in ValidateFile().
@@ -73,7 +73,7 @@ extern "C" CAPI_EXPORT void* CreateValidator(uint64_t checks_bitmask, int32_t ma
  */
 extern "C" CAPI_EXPORT int ValidateFile(void* validator, const char* input_path, 
                                         char* json_buffer, uint64_t* json_buffer_size,
-                                        char* error_message, size_t* error_message_length);
+                                        char* error_message, uint64_t* error_message_length);
 
 /**
  * Destroys a validator after use.

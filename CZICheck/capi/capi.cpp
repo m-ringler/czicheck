@@ -89,41 +89,41 @@ private:
     {
         std::vector<CZIChecks> checks;
         
-        if (bitmask & CZICHECK_SUBBLOCK_DIR_POSITIONS)
+        if (bitmask & CZICHECK_HAS_VALID_SUBBLOCK_POSITIONS)
             checks.push_back(CZIChecks::SubBlockDirectoryPositionsWithinRange);
-        if (bitmask & CZICHECK_SUBBLOCK_SEGMENT_VALID)
+        if (bitmask & CZICHECK_HAS_VALID_SUBBLOCK_SEGMENTS)
             checks.push_back(CZIChecks::SubBlockDirectorySegmentValid);
-        if (bitmask & CZICHECK_CONSISTENT_SUBBLOCK_COORDINATES)
+        if (bitmask & CZICHECK_HAS_CONSISTENT_SUBBLOCK_DIMENSIONS)
             checks.push_back(CZIChecks::ConsistentSubBlockCoordinates);
-        if (bitmask & CZICHECK_DUPLICATE_SUBBLOCK_COORDINATES)
+        if (bitmask & CZICHECK_HAS_NO_DUPLICATE_SUBBLOCK_COORDINATES)
             checks.push_back(CZIChecks::DuplicateSubBlockCoordinates);
-        if (bitmask & CZICHECK_BENABLED_DOCUMENT)
+        if (bitmask & CZICHECK_DOES_NOT_USE_BINDEX)
             checks.push_back(CZIChecks::BenabledDocument);
-        if (bitmask & CZICHECK_SAME_PIXELTYPE_PER_CHANNEL)
+        if (bitmask & CZICHECK_HAS_ONLY_ONE_PIXELTYPE_PER_CHANNEL)
             checks.push_back(CZIChecks::SamePixeltypePerChannel);
-        if (bitmask & CZICHECK_PLANES_START_AT_ZERO)
+        if (bitmask & CZICHECK_HAS_PLANE_INDICES_STARTING_AT_ZERO)
             checks.push_back(CZIChecks::PlanesIndicesStartAtZero);
-        if (bitmask & CZICHECK_PLANES_CONSECUTIVE)
+        if (bitmask & CZICHECK_HAS_CONSECUTIVE_PLANE_INDICES)
             checks.push_back(CZIChecks::PlaneIndicesAreConsecutive);
-        if (bitmask & CZICHECK_SUBBLOCKS_HAVE_MINDEX)
+        if (bitmask & CZICHECK_ALL_SUBBLOCKS_HAVE_MINDEX)
             checks.push_back(CZIChecks::SubblocksHaveMindex);
-        if (bitmask & CZICHECK_BASIC_METADATA_VALIDATION)
+        if (bitmask & CZICHECK_HAS_BASICALLY_VALID_METADATA)
             checks.push_back(CZIChecks::BasicMetadataValidation);
-        if (bitmask & CZICHECK_XML_METADATA_SCHEMA_VALIDATION)
+        if (bitmask & CZICHECK_HAS_XML_SCHEMA_VALID_METADATA)
         {
 #if CZICHECK_XERCESC_AVAILABLE
             checks.push_back(CZIChecks::XmlMetadataSchemaValidation);
 #endif
         }
-        if (bitmask & CZICHECK_OVERLAPPING_SCENES_LAYER0)
+        if (bitmask & CZICHECK_HAS_NO_OVERLAPPING_SCENES_AT_SCALE1)
             checks.push_back(CZIChecks::CCheckOverlappingScenesOnLayer0);
-        if (bitmask & CZICHECK_SUBBLOCK_BITMAP_VALID)
+        if (bitmask & CZICHECK_HAS_VALID_SUBBLOCK_BITMAPS)
             checks.push_back(CZIChecks::CheckSubBlockBitmapValid);
-        if (bitmask & CZICHECK_CONSISTENT_MINDEX)
+        if (bitmask & CZICHECK_HAS_CONSISTENT_MINDICES)
             checks.push_back(CZIChecks::ConsistentMIndex);
-        if (bitmask & CZICHECK_ATTACHMENT_DIR_POSITIONS)
+        if (bitmask & CZICHECK_HAS_VALID_ATTACHMENT_DIR_POSITIONS)
             checks.push_back(CZIChecks::AttachmentDirectoryPositionsWithinRange);
-        if (bitmask & CZICHECK_APPLIANCE_METADATA_TOPOGRAPHY_VALID)
+        if (bitmask & CZICHECK_HAS_VALID_APPLIANCE_METADATA_TOPOGRAPHY)
             checks.push_back(CZIChecks::ApplianceMetadataTopographyItemValid);
             
         return checks;
@@ -264,7 +264,7 @@ extern "C" CAPI_EXPORT void* CreateValidator(uint64_t checks_bitmask, int32_t ma
 
 extern "C" CAPI_EXPORT int ValidateFile(void* validator, const char* input_path, 
                                         char* json_buffer, uint64_t* json_buffer_size,
-                                        char* error_message, size_t* error_message_length)
+                                        char* error_message, uint64_t* error_message_length)
 {
     if (validator == nullptr)
     {
@@ -288,7 +288,7 @@ extern "C" CAPI_EXPORT int ValidateFile(void* validator, const char* input_path,
         // Validation failed - copy error message if buffer provided
         if (error_message != nullptr && error_message_length != nullptr && *error_message_length > 0)
         {
-            size_t copy_len = error_msg.length() < (*error_message_length - 1) ? error_msg.length() : (*error_message_length - 1);
+            uint64_t copy_len = error_msg.length() < (*error_message_length - 1) ? error_msg.length() : (*error_message_length - 1);
             std::memcpy(error_message, error_msg.c_str(), copy_len);
             error_message[copy_len] = '\0';
             *error_message_length = copy_len;

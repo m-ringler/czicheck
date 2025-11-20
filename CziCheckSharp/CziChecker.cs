@@ -1,84 +1,91 @@
-﻿namespace CziCheck.TestHelper;
+﻿// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+//
+// SPDX-License-Identifier: MIT
 
-using System.Runtime.InteropServices;
+namespace CziCheckSharp;
+
+using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
 /// <summary>
-/// Wrapper class for the CZICheck native library (libczicheckc).
-/// Provides an object-oriented interface for checking CZI file integrity via P/Invoke.
+/// Validates CZI files.
 /// </summary>
-public class CziChecker
+/// <param name="configuration">Configuration options for CZI validation.</param>
+/// <threadsafety static="true" instance="false"/>
+public class CziChecker(Configuration configuration) : IDisposable
 {
-    private readonly Configuration _configuration;
+    private readonly Validator validator = new(configuration
+        ?? throw new ArgumentNullException(nameof(configuration)));
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CziChecker"/> class.
-    /// </summary>
-    /// <param name="configuration">Configuration options for CZI validation.</param>
-    public CziChecker(Configuration configuration)
-    {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    }
+    private byte[] outputStringBuffer = new byte[48000];
+    private readonly byte[] errorMessageBuffer = new byte[2048];
+
+    public bool IsDisposed => this.validator.IsDisposed;
+
+    public Configuration Configuration { get; } = configuration
+        ?? throw new ArgumentNullException(nameof(configuration));
 
     /// <summary>
     /// Gets the version information of the CZICheck library.
     /// </summary>
     /// <returns>Version string from CZICheck.</returns>
-    public string GetVersion()
+    public unsafe static string GetVersion()
     {
-        try
+        int size = 1024;
+        var pool = ArrayPool<byte>.Shared;
+        for (int i = 0; i < 2; i++)
         {
             // Try to get the version string
-            ulong size = 0;
-            NativeMethods.GetLibVersionString(nint.Zero, ref size);
-            
-            if (size > 0)
+            byte[] buffer = pool.Rent(size);
+            size = buffer.Length;
+            try
             {
-                nint buffer = Marshal.AllocHGlobal((int)size);
-                try
+                fixed (byte* pBuffer = buffer)
                 {
-                    if (NativeMethods.GetLibVersionString(buffer, ref size))
+                    ulong bufferSize = (ulong)size;
+                    ulong sizeRef = bufferSize;
+
+                    if (NativeMethods.GetLibVersionString((nint)pBuffer, ref sizeRef))
                     {
-                        return Marshal.PtrToStringUTF8(buffer) ?? "Unknown version";
+                        return GetUtf8StringFromBuffer(buffer);
+                    }
+
+                    // Buffer too small, resize and retry
+                    if (sizeRef > bufferSize && sizeRef <= int.MaxValue)
+                    {
+                        size = (int)sizeRef;
+                        continue;
                     }
                 }
-                finally
-                {
-                    Marshal.FreeHGlobal(buffer);
-                }
             }
-
-            // Fallback to numeric version
-            NativeMethods.GetLibVersion(out int major, out int minor, out int patch);
-            return $"{major}.{minor}.{patch}";
+            finally
+            {
+                pool.Return(buffer);
+            }
         }
-        catch
-        {
-            return "Unknown version";
-        }
-    }
 
-    /// <summary>
-    /// Gets the version information of the CZICheck library asynchronously.
-    /// </summary>
-    /// <returns>Version string from CZICheck.</returns>
-    public Task<string> GetVersionAsync()
-    {
-        return Task.FromResult(GetVersion());
+        // Fallback to numeric version
+        NativeMethods.GetLibVersion(out int major, out int minor, out int patch);
+        return $"{major}.{minor}.{patch}";
     }
 
     /// <summary>
     /// Checks a CZI file with the specified options.
     /// </summary>
     /// <param name="cziFilePath">Path to the CZI file to check.</param>
-    /// <param name="cancellationToken">Cancellation token (not used in native implementation).</param>
     /// <returns>Result of the check operation.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="cziFilePath"/> is null or empty.
     /// </exception>
-    public CziCheckResult Check(string cziFilePath, CancellationToken cancellationToken = default)
+    /// <exception cref="FileNotFoundException">
+    /// Thrown when the specified CZI file does not exist.
+    /// </exception>
+    public unsafe CziCheckResult Check(string cziFilePath)
     {
+        ObjectDisposedException.ThrowIf(this.validator.IsDisposed, this);
+
         if (string.IsNullOrWhiteSpace(cziFilePath))
         {
             throw new ArgumentException(
@@ -86,106 +93,92 @@ public class CziChecker
                 nameof(cziFilePath));
         }
 
-        // Create validator
-        nint validator = NativeMethods.CreateValidator(
-            (ulong)_configuration.Checks,
-            _configuration.MaxFindings,
-            _configuration.LaxParsing,
-            _configuration.IgnoreSizeM);
-
-        if (validator == nint.Zero)
+        if (!File.Exists(cziFilePath))
         {
-            throw new InvalidOperationException("Failed to create validator. Invalid configuration parameters.");
+            throw new FileNotFoundException(cziFilePath);
         }
 
-        try
+        // Try validation up to 2 times (once with initial buffer, once after resize if needed)
+        for (int i = 0; i < 2; i++)
         {
-            // First call to get required buffer size
-            ulong jsonBufferSize = 0;
-            nuint errorMessageLength = 0;
-            int result = NativeMethods.ValidateFile(
-                validator,
-                cziFilePath,
-                nint.Zero,
-                ref jsonBufferSize,
-                nint.Zero,
-                ref errorMessageLength);
+            ulong outputBufferSize = (ulong)this.outputStringBuffer.Length;
+            ulong errorMessageLength = (ulong)this.errorMessageBuffer.Length;
 
-            if (result == 3)
+            fixed (byte* pOutputBuffer = this.outputStringBuffer)
+            fixed (byte* pErrorBuffer = this.errorMessageBuffer)
             {
-                throw new InvalidOperationException("Invalid validator pointer.");
-            }
-
-            // Allocate buffers
-            nint jsonBuffer = Marshal.AllocHGlobal((int)jsonBufferSize);
-            nint errorBuffer = errorMessageLength > 0 
-                ? Marshal.AllocHGlobal((int)errorMessageLength) 
-                : nint.Zero;
-
-            try
-            {
-                // Second call with allocated buffers
-                result = NativeMethods.ValidateFile(
-                    validator,
+                int result = this.validator.ValidateFile(
                     cziFilePath,
-                    jsonBuffer,
-                    ref jsonBufferSize,
-                    errorBuffer,
+                    (nint)pOutputBuffer,
+                    ref outputBufferSize,
+                    (nint)pErrorBuffer,
                     ref errorMessageLength);
 
+                Trace.Assert(
+                    result != 3,
+                    "Invalid validator pointer? This is a bug.");
+
+                // If buffer is too small and this is first attempt, grow and retry
+                if (result == 1 && i == 0)
+                {
+                    this.outputStringBuffer = new byte[(int)outputBufferSize];
+                    continue;
+                }
+
+                // Process results
                 string? jsonOutput = null;
                 string? errorOutput = null;
 
-                if (jsonBufferSize > 0)
+                if (outputBufferSize > 0 && result == 0)
                 {
-                    jsonOutput = Marshal.PtrToStringUTF8(jsonBuffer);
+                    jsonOutput = GetUtf8StringFromBuffer(this.outputStringBuffer);
                 }
 
-                if (errorMessageLength > 0 && errorBuffer != nint.Zero)
+                if (errorMessageLength > 0)
                 {
-                    errorOutput = Marshal.PtrToStringUTF8(errorBuffer);
+                    errorOutput = GetUtf8StringFromBuffer(this.errorMessageBuffer);
                 }
 
                 // Handle different result codes
                 return result switch
                 {
                     0 => ParseJsonOutput(jsonOutput, errorOutput),
-                    2 => new CziCheckResult 
-                    { 
-                        ErrorOutput = errorOutput ?? "File access error: Could not open or read the CZI file." 
-                    },
-                    _ => new CziCheckResult 
-                    { 
-                        ErrorOutput = $"Validation failed with error code {result}. {errorOutput}" 
-                    }
+                    2 => CreateErrorResult(
+                        "File access error: Could not open or read the CZI file.",
+                        errorOutput),
+                    _ => CreateErrorResult(
+                        $"Validation failed with error code {result}.",
+                        errorOutput)
                 };
             }
-            finally
-            {
-                if (jsonBuffer != nint.Zero)
-                    Marshal.FreeHGlobal(jsonBuffer);
-                if (errorBuffer != nint.Zero)
-                    Marshal.FreeHGlobal(errorBuffer);
-            }
         }
-        finally
-        {
-            NativeMethods.DestroyValidator(validator);
-        }
+
+        // This should never be reached, but just in case
+        throw new InvalidOperationException("Failed to validate file after retries.");
     }
 
-    /// <summary>
-    /// Checks a CZI file with the specified options asynchronously.
-    /// </summary>
-    /// <param name="cziFilePath">Path to the CZI file to check.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Result of the check operation.</returns>
-    public Task<CziCheckResult> CheckAsync(
-        string cziFilePath,
-        CancellationToken cancellationToken = default)
+    private static string GetUtf8StringFromBuffer(byte[] buffer)
     {
-        // Run the check operation on a background thread to avoid blocking
-        return Task.Run(() => Check(cziFilePath, cancellationToken), cancellationToken);
+        // Find the null terminator
+        int length = Array.IndexOf(buffer, (byte)0);
+        if (length == -1)
+        {
+            length = buffer.Length;
+        }
+
+        return Encoding.UTF8.GetString(buffer, 0, length);
+    }
+
+    private static CziCheckResult CreateErrorResult(
+        string constantMessage,
+        string? variableMessage = null)
+    {
+        return new CziCheckResult
+        {
+            ErrorOutput = string.IsNullOrWhiteSpace(variableMessage)
+                ? constantMessage
+                : $"{constantMessage} {variableMessage}"
+        };
     }
 
     private static CziCheckResult ParseJsonOutput(
@@ -194,14 +187,16 @@ public class CziChecker
     {
         if (string.IsNullOrWhiteSpace(jsonOutput))
         {
-            return new CziCheckResult { ErrorOutput = errorOutput ?? "No output received from validation." };
+            return CreateErrorResult(
+                "No output received from validation.",
+                errorOutput);
         }
 
         try
         {
             var output = JsonSerializer.Deserialize<CziCheckJsonOutput>(jsonOutput);
             return output == null
-                ? new CziCheckResult { ErrorOutput = errorOutput }
+                ? CreateErrorResult("Deserialized output is null.", errorOutput)
                 : new CziCheckResult
                 {
                     OverallResult = output.OverallResult,
@@ -212,10 +207,18 @@ public class CziChecker
         }
         catch (JsonException ex)
         {
-            return new CziCheckResult 
-            { 
-                ErrorOutput = $"Failed to parse JSON output: {ex.Message}\nRaw output: {jsonOutput}" 
-            };
+            return CreateErrorResult(
+                "Failed to parse JSON output.",
+                $"{ex.Message}\nRaw output: {jsonOutput}");
         }
+    }
+
+    /// <summary>
+    /// Disposes the CziChecker and releases native resources.
+    /// </summary>
+    public void Dispose()
+    {
+        this.validator.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

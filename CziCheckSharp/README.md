@@ -11,7 +11,7 @@ This library wraps the CZICheck tool (version 0.6.3+) and provides a type-safe, 
 ### Basic Usage
 
 ```csharp
-using CziCheck.TestHelper;
+using CziCheckSharp;
 
 // Default checker instance (with zscaler-safe download)
 var checker = await CziChecker.GetCachedOrDownloadAsync(cancellationToken);

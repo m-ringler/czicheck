@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2023 Carl Zeiss Microscopy GmbH
+// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
 //
 // SPDX-License-Identifier: MIT
 
-using System.Runtime.InteropServices;
+namespace CziCheckSharp;
 
-namespace CziCheck.TestHelper;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// P/Invoke declarations for libczicheckc native library.
@@ -19,14 +19,14 @@ internal static partial class NativeMethods
     /// <param name="checksBitmask">A bitmask of CZICHECK_* constants specifying which checks to perform.</param>
     /// <param name="maxFindings">Maximum number of findings to report per check (-1 for unlimited).</param>
     /// <param name="laxParsing">If true, enables lax parsing mode (tolerates some CZI format violations).</param>
-    /// <param name="ignoreSizem">If true, ignores size M dimension for pyramid subblocks.</param>
+    /// <param name="ignoreSizeM">If true, ignores size M dimension for pyramid subblocks.</param>
     /// <returns>A new validator instance for the specified configuration, or NULL if parameters are invalid.</returns>
     [LibraryImport(LibraryName)]
     internal static partial nint CreateValidator(
         ulong checksBitmask,
         int maxFindings,
         [MarshalAs(UnmanagedType.U1)] bool laxParsing,
-        [MarshalAs(UnmanagedType.U1)] bool ignoreSizem);
+        [MarshalAs(UnmanagedType.U1)] bool ignoreSizeM);
 
     /// <summary>
     /// Validates a single CZI file with the specified validator.
@@ -50,7 +50,7 @@ internal static partial class NativeMethods
         nint jsonBuffer,
         ref ulong jsonBufferSize,
         nint errorMessage,
-        ref nuint errorMessageLength);
+        ref ulong errorMessageLength);
 
     /// <summary>
     /// Destroys a validator after use.
@@ -74,7 +74,7 @@ internal static partial class NativeMethods
     /// <param name="buffer">Pointer to a buffer (which size is stated with size).</param>
     /// <param name="size">Pointer to a uint64 which on input contains the size of the buffer, and on output (with return value false) the required size of the buffer.</param>
     /// <returns>True if the buffer size was sufficient (and in this case the text is copied to the buffer); false otherwise (and in this case the required size is written to *size).</returns>
-    [LibraryImport(LibraryName)]
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [return: MarshalAs(UnmanagedType.U1)]
     internal static partial bool GetLibVersionString(nint buffer, ref ulong size);
 }

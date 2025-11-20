@@ -1,4 +1,8 @@
-﻿namespace CziCheck.TestHelper;
+﻿// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+//
+// SPDX-License-Identifier: MIT
+
+namespace CziCheckSharp;
 
 using System.Text.Json.Serialization;
 

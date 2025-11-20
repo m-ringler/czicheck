@@ -1,10 +1,14 @@
-﻿namespace CziCheck.TestHelper;
+﻿// SPDX-FileCopyrightText: 2025 Carl Zeiss Microscopy GmbH
+//
+// SPDX-License-Identifier: MIT
+
+namespace CziCheckSharp;
 
 /// <summary>
 /// Flags enumeration specifying which CZI checks to run.
 /// Maps to the CZICHECK_* bitmask constants in the native C API.
 /// </summary>
-/// <seealso href="https://github.com/ZEISS/czicheck/blob/main/documentation/description_of_checks.md"/>
+/// <seealso href="https://github.com/ZEISS/czicheck/blob/main/documentation/description_of_checkers.md"/>
 [Flags]
 public enum Checks : ulong
 {
@@ -14,105 +18,105 @@ public enum Checks : ulong
     None = 0,
 
     /// <summary>
-    /// SubBlock-Segment positions within file range (SubBlockDirectoryPositionsWithinRange).
+    /// SubBlock-Segment positions within file range (subblksegmentsinfile).
     /// Part of default set.
     /// </summary>
-    SubBlockDirPositions = 0x0001UL,
+    HasValidSubBlockPositions = 0x0001UL,
 
     /// <summary>
     /// SubBlock-Segments in SubBlockDirectory are valid (SubBlockDirectorySegmentValid).
     /// Part of default set.
     /// </summary>
-    SubBlockSegmentValid = 0x0002UL,
+    HasValidSubBlockSegments = 0x0002UL,
 
     /// <summary>
-    /// Check subblock's coordinates for 'consistent dimensions' (ConsistentSubBlockCoordinates).
+    /// Check subblock's coordinates for 'consistent dimensions' (subblkdimconsistent).
     /// Part of default set.
     /// </summary>
-    ConsistentSubBlockCoordinates = 0x0004UL,
+    HasConsistentSubBlockDimensions = 0x0004UL,
 
     /// <summary>
-    /// Check subblock's coordinates being unique (DuplicateSubBlockCoordinates).
+    /// Check subblock's coordinates being unique (subblkcoordsunique).
     /// Part of default set.
     /// </summary>
-    DuplicateSubBlockCoordinates = 0x0008UL,
+    HasNoDuplicateSubBlockCoordinates = 0x0008UL,
 
     /// <summary>
-    /// Check whether the document uses the deprecated 'B-index' (BenabledDocument).
+    /// Check whether the document uses the deprecated 'B-index' (benabled).
     /// Part of default set.
     /// </summary>
-    BenabledDocument = 0x0010UL,
+    DoesNotUseBIndex = 0x0010UL,
 
     /// <summary>
-    /// Check that the subblocks of a channel have the same pixel type (SamePixeltypePerChannel).
+    /// Check that the subblocks of a channel have the same pixel type (samepixeltypeperchannel).
     /// Part of default set.
     /// </summary>
-    SamePixeltypePerChannel = 0x0020UL,
+    HasOnlyOnePixelTypePerChannel = 0x0020UL,
 
     /// <summary>
-    /// Check that planes indices start at 0 (PlanesIndicesStartAtZero).
+    /// Check that planes indices start at 0 (planesstartindex).
     /// Part of default set.
     /// </summary>
-    PlanesIndicesStartAtZero = 0x0040UL,
+    HasPlaneIndicesStartingAtZero = 0x0040UL,
 
     /// <summary>
-    /// Check that planes have consecutive indices (PlaneIndicesAreConsecutive).
+    /// Check that planes have consecutive indices (consecutiveplaneindices).
     /// Part of default set.
     /// </summary>
-    PlaneIndicesAreConsecutive = 0x0080UL,
+    HasConsecutivePlaneIndices = 0x0080UL,
 
     /// <summary>
-    /// Check if all subblocks have the M index (SubblocksHaveMindex).
+    /// Check if all subblocks have the M index (minallsubblks).
     /// Part of default set.
     /// </summary>
-    SubblocksHaveMindex = 0x0100UL,
+    AllSubblocksHaveMIndex = 0x0100UL,
 
     /// <summary>
-    /// Basic semantic checks of the XML-metadata (BasicMetadataValidation).
+    /// Basic semantic checks of the XML-metadata (basicxmlmetadata).
     /// Part of default set.
     /// </summary>
-    BasicMetadataValidation = 0x0200UL,
+    HasBasicallyValidMetadata = 0x0200UL,
 
     /// <summary>
-    /// Validate the XML-metadata against XSD-schema (XmlMetadataSchemaValidation).
+    /// Validate the XML-metadata against XSD-schema (xmlmetadataschema).
     /// Opt-in check (expensive).
     /// </summary>
-    XmlMetadataSchemaValidation = 0x0400UL,
+    HasXmlSchemaValidMetadata = 0x0400UL,
 
     /// <summary>
-    /// Check if subblocks at pyramid-layer 0 of different scenes are overlapping (CCheckOverlappingScenesOnLayer0).
+    /// Check if subblocks at pyramid-layer 0 of different scenes are overlapping (overlappingscenes).
     /// Part of default set.
     /// </summary>
-    OverlappingScenesLayer0 = 0x0800UL,
+    HasNoOverlappingScenesAtScale1 = 0x0800UL,
 
     /// <summary>
-    /// SubBlock bitmap content validation (CheckSubBlockBitmapValid).
+    /// SubBlock bitmap content validation (subblkbitmapvalid).
     /// Opt-in check (expensive).
     /// </summary>
-    SubBlockBitmapValid = 0x1000UL,
+    HasValidSubBlockBitmaps = 0x1000UL,
 
     /// <summary>
     /// Check for consistent M-Index usage (ConsistentMIndex).
     /// Part of default set.
     /// </summary>
-    ConsistentMIndex = 0x2000UL,
+    HasConsistentMIndices = 0x2000UL,
 
     /// <summary>
     /// Attachment directory positions within file range (AttachmentDirectoryPositionsWithinRange).
     /// Part of default set.
     /// </summary>
-    AttachmentDirPositions = 0x4000UL,
+    HasValidAttachmentDirPositions = 0x4000UL,
 
     /// <summary>
-    /// Basic semantic checks for TopographyDataItems (ApplianceMetadataTopographyItemValid).
+    /// Basic semantic checks for TopographyDataItems (topographymetadata).
     /// Part of default set.
     /// </summary>
-    ApplianceMetadataTopographyValid = 0x8000UL,
+    HasValidApplianceMetadataTopography = 0x8000UL,
 
     /// <summary>
     /// The checks that are disabled by default (expensive operations).
     /// </summary>
-    OptIn = XmlMetadataSchemaValidation | SubBlockBitmapValid,
+    OptIn = HasXmlSchemaValidMetadata | HasValidSubBlockBitmaps,
 
     /// <summary>
     /// All available checks.
