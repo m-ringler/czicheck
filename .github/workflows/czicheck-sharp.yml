@@ -202,3 +202,65 @@ jobs:
           path: |
             nuget-output/*.nupkg
             nuget-output/*.snupkg
+
+  test-nuget-package:
+    needs: pack
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download NuGet packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: nuget-local
+
+      - name: List NuGet packages
+        shell: bash
+        run: |
+          echo "Downloaded NuGet packages:"
+          ls -la nuget-local/
+
+      - name: Extract package version
+        shell: bash
+        run: |
+          NUPKG=$(ls nuget-local/*.nupkg | grep -v '\.snupkg$' | head -n 1)
+          VERSION=$(basename "$NUPKG" | sed 's/m-ringler\.CziCheckSharp\.\(.*\)\.nupkg/\1/')
+          echo "CZICHECK_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Using version: $VERSION"
+
+      - name: Clean test project build output
+        shell: bash
+        run: |
+          rm -rf CziCheckSharp.Tests/bin CziCheckSharp.Tests/obj
+          echo "Cleaned test project build output"
+
+      - name: Restore NuGet packages
+        shell: bash
+        run: |
+          dotnet restore CziCheckSharp.Tests/CziCheckSharp.Tests.csproj \
+            --source "${{ github.workspace }}/nuget-local" \
+            -p:Configuration=Release \
+            -p:CziCheckSharpVersion="$CZICHECK_VERSION" \
+            -p:UseNuGetPackage=true
+
+      - name: Test with NuGet package
+        shell: bash
+        run: |
+          dotnet test CziCheckSharp.Tests/CziCheckSharp.Tests.csproj \
+            --configuration Release \
+            --no-restore \
+            -p:UseNuGetPackage=true

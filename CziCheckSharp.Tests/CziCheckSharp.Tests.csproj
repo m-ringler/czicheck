@@ -5,7 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <NativeLibraryPath>..\..\out\build\x64-Debug\CZICheck\capi</NativeLibraryPath>
+    <NativeLibraryPath Condition="'$(NativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true'">..\..\out\build\x64-Debug\CZICheck\capi</NativeLibraryPath>
+    <CziCheckSharpVersion Condition="'$(CziCheckSharpVersion)' == ''">*-*</CziCheckSharpVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,8 +21,14 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- Local development: Use ProjectReference (default) -->
+  <ItemGroup Condition="'$(UseNuGetPackage)' != 'true'">
     <ProjectReference Include="..\CziCheckSharp\CziCheckSharp.csproj" />
+  </ItemGroup>
+
+  <!-- CI/NuGet testing: Use PackageReference with wildcard version including prerelease -->
+  <ItemGroup Condition="'$(UseNuGetPackage)' == 'true'">
+    <PackageReference Include="m-ringler.CziCheckSharp" Version="$(CziCheckSharpVersion)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,10 +36,13 @@
     <Using Include="AwesomeAssertions" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- Copy native libraries when using ProjectReference (local dev) -->
+  <ItemGroup Condition="'$(UseNuGetPackage)' != 'true' AND '$(NativeLibraryPath)' != ''">
     <None Include="$(NativeLibraryPath)\*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(NativeLibraryPath)\*.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(NativeLibraryPath)\*.pdb" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- When using PackageReference, native libs come from NuGet package automatically -->
 
 </Project>
