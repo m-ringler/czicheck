@@ -19,6 +19,14 @@ Files: .vscode/*
 Copyright: 2025 Carl Zeiss Microscopy GmbH
 License: MIT
 
+Files: CziCheckSharp/Properties/* CziCheckSharp.Tests/Properties/*
+Copyright: 2025 Carl Zeiss Microscopy GmbH
+License: MIT
+
+Files: CziCheckSharp/README.md CziCheckSharp.Tests/README.md CziCheckSharp/.editorconfig CziCheckSharp.Tests/.editorconfig
+Copyright: 2025 Carl Zeiss Microscopy GmbH
+License: MIT
+
 Files: CZICheck/capi/*
 Copyright: 2025 Carl Zeiss Microscopy GmbH
 License: MIT
