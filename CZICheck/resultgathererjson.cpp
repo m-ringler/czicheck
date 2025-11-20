@@ -12,8 +12,8 @@
 
 using namespace std;
 
-CResultGathererJson::CResultGathererJson(const ICheckerOptions& options, std::ostringstream* output_stream)
-    : options_(options), output_stream_(output_stream)
+CResultGathererJson::CResultGathererJson(const ICheckerOptions& options, std::ostringstream* output_stream, bool minified)
+    : options_(options), output_stream_(output_stream), minified_(minified)
 {
     this->json_document_.SetArray();
     this->test_results_ = rapidjson::Value(rapidjson::kArrayType);
@@ -113,9 +113,17 @@ void CResultGathererJson::FinalizeChecks()
 
     this->json_document_.AddMember(rapidjson::Value("output_version", allocator), output_version, allocator);
     rapidjson::StringBuffer str_buf;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(str_buf);
-
-    this->json_document_.Accept(writer);
+    
+    if (this->minified_)
+    {
+        rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
+        this->json_document_.Accept(writer);
+    }
+    else
+    {
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(str_buf);
+        this->json_document_.Accept(writer);
+    }
     
     // Write to output stream if provided, otherwise write to console
     if (this->output_stream_ != nullptr)

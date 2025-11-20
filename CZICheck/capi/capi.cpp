@@ -190,8 +190,8 @@ public:
                 return 2;
             }
             
-            // Create result gatherer with in-memory JSON capture
-            auto resultsGatherer = std::make_shared<CResultGathererJson>(options, &json_stream);
+            // Create result gatherer with in-memory JSON capture (minified)
+            auto resultsGatherer = std::make_shared<CResultGathererJson>(options, &json_stream, true);
             
             CheckerCreateInfo checkerAdditionalInfo;
             try
