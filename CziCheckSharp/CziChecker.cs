@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
+using static CziCheckSharp.CziCheckResult;
+
 /// <summary>
 /// Validates CZI files.
 /// </summary>
@@ -69,7 +71,7 @@ public class CziChecker(Configuration configuration) : IDisposable
         // Fallback to numeric version
         NativeMethods.GetLibVersion(out int major, out int minor, out int patch);
         return $"{major}.{minor}.{patch}";
-    }
+    } 
 
     /// <summary>
     /// Checks a CZI file with the specified options.
@@ -172,18 +174,6 @@ public class CziChecker(Configuration configuration) : IDisposable
         return Encoding.UTF8.GetString(buffer, 0, length);
     }
 
-    private static CziCheckResult CreateErrorResult(
-        string constantMessage,
-        string? variableMessage = null)
-    {
-        return new CziCheckResult
-        {
-            ErrorOutput = string.IsNullOrWhiteSpace(variableMessage)
-                ? constantMessage
-                : $"{constantMessage} {variableMessage}"
-        };
-    }
-
     private static CziCheckResult ParseJsonOutput(
         string? jsonOutput,
         string? errorOutput)
@@ -195,25 +185,7 @@ public class CziChecker(Configuration configuration) : IDisposable
                 errorOutput);
         }
 
-        try
-        {
-            var output = JsonSerializer.Deserialize<CziCheckJsonOutput>(jsonOutput);
-            return output == null
-                ? CreateErrorResult("Deserialized output is null.", errorOutput)
-                : new CziCheckResult
-                {
-                    OverallResult = output.OverallResult,
-                    CheckerResults = output.Tests ?? [],
-                    Version = output.OutputVersion?.Version,
-                    ErrorOutput = errorOutput
-                };
-        }
-        catch (JsonException ex)
-        {
-            return CreateErrorResult(
-                "Failed to parse JSON output.",
-                $"{ex.Message}\nRaw output: {jsonOutput}");
-        }
+        return CziCheckResult.FromJson(jsonOutput, errorOutput);
     }
 
     /// <summary>

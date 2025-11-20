@@ -26,14 +26,18 @@ public class SampleCziTests
         _ = expectedJsonContent;
         await Ensure(cziFilePath, md5Content.Trim());
 
-        CziCheckResult result;
-        using (var checker = new CziChecker(new()))
+        CziCheckResult actual;
+        using (var checker = new CziChecker(new Configuration { LaxParsing = true }))
         {
-            result = checker.Check(cziFilePath);
+            actual = checker.Check(cziFilePath);
         }
 
-        var resultAsJson = JsonSerializer.Serialize(result);
-        Assert.NotEmpty(resultAsJson);
+        Console.WriteLine(JsonSerializer.Serialize(actual));
+        var expected = CziCheckResult.FromJson(expectedJsonContent, actual.ErrorOutput);
+
+        Assert.Equal(
+            expected,
+            actual);
     }
 
     public static TheoryData<string, string, string> GetSampleCziTestData()
