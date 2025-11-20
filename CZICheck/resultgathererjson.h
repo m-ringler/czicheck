@@ -19,7 +19,7 @@
 class CResultGathererJson : public IResultGatherer
 {
 private:
-    const CCmdLineOptions& options_;
+    const ICheckerOptions& options_;
     std::ostringstream* output_stream_;  // If non-null, write JSON to this stream instead of console
     
     rapidjson::Document json_document_;
@@ -27,7 +27,7 @@ private:
     std::string current_checker_id;
 
 public:
-    explicit CResultGathererJson(const CCmdLineOptions& options, std::ostringstream* output_stream = nullptr);
+    explicit CResultGathererJson(const ICheckerOptions& options, std::ostringstream* output_stream = nullptr);
     void StartCheck(CZIChecks check) override;
     void ReportFinding(const Finding& finding) override;
     void FinishCheck(CZIChecks check) override;

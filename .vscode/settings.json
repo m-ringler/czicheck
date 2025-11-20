@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.json.schema": "json",
+        "utility": "cpp"
+    }
+}

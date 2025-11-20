@@ -12,7 +12,7 @@
 
 using namespace std;
 
-CResultGathererJson::CResultGathererJson(const CCmdLineOptions& options, std::ostringstream* output_stream)
+CResultGathererJson::CResultGathererJson(const ICheckerOptions& options, std::ostringstream* output_stream)
     : options_(options), output_stream_(output_stream)
 {
     this->json_document_.SetArray();

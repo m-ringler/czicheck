@@ -11,6 +11,7 @@
 #include <sstream>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 
 #include "../inc_libCZI.h"
 #include "../checks.h"
@@ -19,6 +20,7 @@
 #include "../resultgathererjson.h"
 #include "../utils.h"
 #include "../consoleio.h"
+#include "../checkerfactory.h"
 
 #if CZICHECK_WIN32_ENVIRONMENT
 #include <Windows.h>
@@ -50,7 +52,7 @@ public:
 };
 
 // Helper class that mimics CCmdLineOptions but with programmatic configuration
-class CValidatorOptions
+class CValidatorOptions : public ICheckerOptions
 {
 private:
     std::vector<CZIChecks> checks_enabled_;
@@ -71,11 +73,7 @@ public:
     bool GetPrintDetailsOfMessages() const { return true; }  // Always true per requirements
     bool GetLaxParsingEnabled() const { return lax_parsing_; }
     bool GetIgnoreSizeMForPyramidSubBlocks() const { return ignore_sizem_; }
-    const std::shared_ptr<ILog>& GetLog() const { return log_; }
-    CCmdLineOptions::OutputEncodingFormat GetOutputEncodingFormat() const 
-    { 
-        return CCmdLineOptions::OutputEncodingFormat::JSON; 
-    }
+    const std::shared_ptr<ILog>& GetLog() const override { return log_; }
 };
 
 // Internal validator class
@@ -290,7 +288,7 @@ extern "C" CAPI_EXPORT int ValidateFile(void* validator, const char* input_path,
         // Validation failed - copy error message if buffer provided
         if (error_message != nullptr && error_message_length != nullptr && *error_message_length > 0)
         {
-            size_t copy_len = std::min(error_msg.length(), *error_message_length - 1);
+            size_t copy_len = error_msg.length() < (*error_message_length - 1) ? error_msg.length() : (*error_message_length - 1);
             std::memcpy(error_message, error_msg.c_str(), copy_len);
             error_message[copy_len] = '\0';
             *error_message_length = copy_len;
