@@ -4,7 +4,7 @@
 
 namespace CziCheckSharp;
 
-public static class ChecksParser
+internal static class ChecksParser
 {
     // Native checker kShortName values (used for the command line argument)
     private static readonly Dictionary<string, Checks> ShortNameMap = new(StringComparer.OrdinalIgnoreCase)
@@ -72,7 +72,7 @@ public static class ChecksParser
         }
 
         checks = result;
-        return true;
+        return result != Checks.None;
     }
 
     private static bool TryParseOneCheck(string part, out Checks parsedCheck)
