@@ -33,7 +33,7 @@ internal static class ChecksParser
         ["ConsistentSubBlockCoordinates"] = Checks.HasConsistentSubBlockDimensions,
         ["DuplicateSubBlockCoordinates"] = Checks.HasNoDuplicateSubBlockCoordinates,
         ["BenabledDocument"] = Checks.DoesNotUseBIndex,
-        ["PlanesIndicesStartZero"] = Checks.HasPlaneIndicesStartingAtZero,
+        ["PlanesIndicesStartAtZero"] = Checks.HasPlaneIndicesStartingAtZero,
         ["PlaneIndicesAreConsecutive"] = Checks.HasConsecutivePlaneIndices,
         ["SubblocksHaveMindex"] = Checks.AllSubblocksHaveMIndex,
         ["BasicMetadataValidation"] = Checks.HasBasicallyValidMetadata,

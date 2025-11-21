@@ -42,14 +42,14 @@ public class SampleCziTests
     [Fact]
     public void ReadmeCodeHasNoErrors()
     {
-        var testData = GetSampleCziTestData();
+        var testData = EnumerateSampleCziTestData();
         
-        string file = testData.First()[0].ToString()!;
+        string file = testData.First().cziFilePath;
         
         var act1 = () => ReadmeExamples.CheckAndPrintResult(file);
         _ = act1.Should().NotThrow();
 
-        var act2 = () => ReadmeExamples.Configuration(file);
+        var act2 = () => ReadmeExamples.ConfigurationExample(file);
         _ = act2.Should().NotThrow();
 
         var act3 = ReadmeExamples.GetVersion;
@@ -83,9 +83,9 @@ public class SampleCziTests
         }
 
         // ASSERT
-        var expected = FileResult.FromJson(
-            cziFilePath,
-            expectedJsonContent);
+        var expected = FileResultDto
+            .FromJson(expectedJsonContent)
+            .ToResultFor(cziFilePath);
 
         try
         {
@@ -99,22 +99,40 @@ public class SampleCziTests
             Console.WriteLine(JsonSerializer.Serialize(expected));
             throw;
         }
+
+        _ = actual.CheckResults
+            .Where(x => x.Check == Checks.None)
+            .Should().BeEmpty();
     }
 
     public static TheoryData<string, string, string> GetSampleCziTestData()
     {
+        var data = new TheoryData<string, string, string>();
+        var testData = EnumerateSampleCziTestData();
+        foreach (var (cziFilePath, md5, json) in testData)
+        {
+            data.Add(cziFilePath, md5, json);
+        }
+
+        return data;
+    }
+    
+    
+    internal static IEnumerable<(string cziFilePath, string md5, string json)>
+        EnumerateSampleCziTestData()
+    {
         return GetSampleCziTestDataCore();
     }
 
-    private static TheoryData<string, string, string> GetSampleCziTestDataCore(
+    private static IEnumerable<(string cziFilePath, string md5, string json)>
+     GetSampleCziTestDataCore(
         [CallerFilePath] string? sourceFilePath = null)
     {
         var cziCheckSamplesPath = GetTestDataFolder(sourceFilePath);
-        var testData = new TheoryData<string, string, string>();
 
         if (!Directory.Exists(cziCheckSamplesPath))
         {
-            return testData;
+            yield break;
         }
 
         // Find all .czi.md5 files
@@ -132,11 +150,9 @@ public class SampleCziTests
                 var cziFile = baseName + ".czi";
                 var md5Content = File.ReadAllText(md5File);
                 var jsonContent = File.ReadAllText(jsonFile);
-                testData.Add(cziFile, md5Content, jsonContent);
+                yield return(cziFile, md5Content, jsonContent);
             }
         }
-
-        return testData;
     }
 
     private static string GetTestDataFolder(string? sourceFilePath)

@@ -18,11 +18,6 @@ public sealed record class FileResult(
     public IEnumerable<CheckResult> this[CheckStatus status]
         => this.CheckResults.Where(cr => cr.Status == status);
 
-    public static FileResult FromJson(string file, string json)
-    {
-        return FileResultDto.FromJson(json).ToResultFor(file);
-    }
-
     public bool Equals(FileResult? other)
     {
         if (other is null)

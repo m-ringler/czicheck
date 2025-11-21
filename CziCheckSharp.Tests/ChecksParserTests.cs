@@ -100,7 +100,7 @@ public class ChecksParserTests
     [InlineData("ConsistentSubBlockCoordinates", Checks.HasConsistentSubBlockDimensions)]
     [InlineData("DuplicateSubBlockCoordinates", Checks.HasNoDuplicateSubBlockCoordinates)]
     [InlineData("BenabledDocument", Checks.DoesNotUseBIndex)]
-    [InlineData("PlanesIndicesStartZero", Checks.HasPlaneIndicesStartingAtZero)]
+    [InlineData("PlanesIndicesStartAtZero", Checks.HasPlaneIndicesStartingAtZero)]
     [InlineData("PlaneIndicesAreConsecutive", Checks.HasConsecutivePlaneIndices)]
     [InlineData("SubblocksHaveMindex", Checks.AllSubblocksHaveMIndex)]
     [InlineData("BasicMetadataValidation", Checks.HasBasicallyValidMetadata)]
@@ -330,7 +330,7 @@ public class ChecksParserTests
     public void TryParse_WithNonCommaSeparator_ReturnsFalse(string input)
     {
         // Act
-        var result = ChecksParser.TryParse(input, out var checks);
+        var result = ChecksParser.TryParse(input, out var _);
 
         // Assert
         _ = result.Should().BeFalse();

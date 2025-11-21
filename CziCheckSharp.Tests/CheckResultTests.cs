@@ -5,7 +5,6 @@
 namespace CziCheckSharp.Tests;
 
 using System.Collections.Immutable;
-using AwesomeAssertions;
 
 /// <summary>
 /// Tests for <see cref="CheckResult"/>.
