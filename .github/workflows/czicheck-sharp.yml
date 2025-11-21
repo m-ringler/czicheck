@@ -28,7 +28,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed for MinVer to determine version from git tags
+          fetch-depth: 0
+          filter: tree:0  # Needed for MinVer to determine version from git tags
 
       - name: Cache vcpkg and packages
         uses: actions/cache@v4
@@ -120,6 +121,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          filter: tree:0 
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -154,6 +156,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          filter: tree:0 
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
