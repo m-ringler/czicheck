@@ -125,8 +125,8 @@ public class SampleCziTests
     }
 
     private static IEnumerable<(string cziFilePath, string md5, string json)>
-     GetSampleCziTestDataCore(
-        [CallerFilePath] string? sourceFilePath = null)
+        GetSampleCziTestDataCore(
+            [CallerFilePath] string? sourceFilePath = null)
     {
         var cziCheckSamplesPath = GetTestDataFolder(sourceFilePath);
 
