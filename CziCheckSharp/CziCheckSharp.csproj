@@ -69,4 +69,7 @@
     <Content Include="$(Linuxx64LibLocation)" PackagePath="runtimes/linux-x64/native" Pack="true" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CziCheckSharp.Tests" />
+  </ItemGroup>
 </Project>

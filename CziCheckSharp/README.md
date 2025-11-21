@@ -26,8 +26,7 @@ The NuGet package includes the native libraries for supported platforms, so no a
 using CziCheckSharp;
 
 // Create a checker with default configuration
-var configuration = new Configuration();
-using var checker = new CziChecker(configuration);
+using var checker = new CziChecker(Configuration.Default);
 
 // Validate a CZI file
 FileResult result = checker.Check(file);

@@ -16,8 +16,7 @@ public class ReadmeExamples
     public static void CheckAndPrintResult(string file)
     {
         // Create a checker with default configuration
-        var configuration = new Configuration();
-        using var checker = new CziChecker(configuration);
+        using var checker = new CziChecker(Configuration.Default);
 
         // Validate a CZI file
         FileResult result = checker.Check(file);
@@ -41,7 +40,7 @@ public class ReadmeExamples
         }
     }
 
-    public static void Configuration(string file)
+    public static void ConfigurationExample(string file)
     {
         var configuration = new Configuration
         {
