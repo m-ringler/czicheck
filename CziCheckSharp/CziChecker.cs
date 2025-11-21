@@ -5,18 +5,16 @@
 namespace CziCheckSharp;
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 
-using static CziCheckSharp.CziCheckResult;
+using Result = CziCheckSharp.Validator.Result;
 
 /// <summary>
 /// Validates CZI files.
 /// </summary>
 /// <param name="configuration">Configuration options for CZI validation.</param>
 /// <threadsafety static="true" instance="false"/>
-public class CziChecker(Configuration configuration) : IDisposable
+public sealed class CziChecker(Configuration configuration) : IDisposable
 {
     private readonly Validator validator = new(configuration
         ?? throw new ArgumentNullException(nameof(configuration)));
@@ -24,7 +22,7 @@ public class CziChecker(Configuration configuration) : IDisposable
     private byte[] outputStringBuffer = new byte[48000];
     private readonly byte[] errorMessageBuffer = new byte[2048];
 
-    public bool IsDisposed => this.validator.IsDisposed;
+    public bool IsDisposed => this.validator.IsInvalid;
 
     public Configuration Configuration { get; } = configuration
         ?? throw new ArgumentNullException(nameof(configuration));
@@ -32,10 +30,14 @@ public class CziChecker(Configuration configuration) : IDisposable
     /// <summary>
     /// Gets the version information of the CZICheck library.
     /// </summary>
+    /// <remarks>
+    /// This is not the version of <see cref="CziCheckSharp"/>,
+    /// but the version of the underlying CZICheck library.
+    /// </remarks>
     /// <returns>Version string from CZICheck.</returns>
-    public unsafe static string GetVersion()
+    public unsafe static string GetCziCheckVersion()
     {
-        int size = 1024;
+        int size = 256;
         var pool = ArrayPool<byte>.Shared;
         for (int i = 0; i < 2; i++)
         {
@@ -71,7 +73,7 @@ public class CziChecker(Configuration configuration) : IDisposable
         // Fallback to numeric version
         NativeMethods.GetLibVersion(out int major, out int minor, out int patch);
         return $"{major}.{minor}.{patch}";
-    } 
+    }
 
     /// <summary>
     /// Checks a CZI file with the specified options.
@@ -84,9 +86,9 @@ public class CziChecker(Configuration configuration) : IDisposable
     /// <exception cref="FileNotFoundException">
     /// Thrown when the specified CZI file does not exist.
     /// </exception>
-    public unsafe CziCheckResult Check(string cziFilePath)
+    public unsafe FileResult Check(string cziFilePath)
     {
-        ObjectDisposedException.ThrowIf(this.validator.IsDisposed, this);
+        ObjectDisposedException.ThrowIf(this.validator.IsInvalid, this);
 
         if (string.IsNullOrWhiteSpace(cziFilePath))
         {
@@ -100,66 +102,86 @@ public class CziChecker(Configuration configuration) : IDisposable
             throw new FileNotFoundException(cziFilePath);
         }
 
-        // Try validation up to 2 times (once with initial buffer, once after resize if needed)
-        for (int i = 0; i < 2; i++)
-        {
-            ulong outputBufferSize = (ulong)this.outputStringBuffer.Length;
-            ulong errorMessageLength = (ulong)this.errorMessageBuffer.Length;
+        Result validatorReturnValue = default;
+        ulong outputBufferSize = 0;
+        ulong errorMessageLength = 0;
 
+        // Try validation up to 2 times
+        // (once with initial buffer, once after resize if needed)
+        for (int attempt = 1; attempt <= 2; attempt++)
+        {
+            Array.Clear(this.outputStringBuffer);
+            Array.Clear(this.errorMessageBuffer);
             fixed (byte* pOutputBuffer = this.outputStringBuffer)
             fixed (byte* pErrorBuffer = this.errorMessageBuffer)
             {
-                int result = this.validator.ValidateFile(
+                outputBufferSize = (ulong)this.outputStringBuffer.Length;
+                errorMessageLength = (ulong)this.errorMessageBuffer.Length;
+                validatorReturnValue = this.validator.ValidateFile(
                     cziFilePath,
                     (nint)pOutputBuffer,
                     ref outputBufferSize,
                     (nint)pErrorBuffer,
                     ref errorMessageLength);
 
-                Trace.Assert(
-                    result != 3,
-                    "Invalid validator pointer? This is a bug.");
-
-                // If buffer is too small and this is first attempt, grow and retry
-                if (result == 1 && i == 0)
+                if (validatorReturnValue == Result.BufferTooSmall &&
+                    attempt == 1 &&
+                    outputBufferSize < int.MaxValue)
                 {
+                    // Retry with resized buffer
                     this.outputStringBuffer = new byte[(int)outputBufferSize];
-                    continue;
                 }
-
-                // Process results
-                string? jsonOutput = null;
-                string? errorOutput = null;
-
-                if (outputBufferSize > 0 && result == 0)
+                else
                 {
-                    jsonOutput = GetUtf8StringFromBuffer(this.outputStringBuffer);
+                    break;
                 }
-
-                if (errorMessageLength > 0)
-                {
-                    errorOutput = GetUtf8StringFromBuffer(this.errorMessageBuffer);
-                }
-
-                // Handle different result codes
-                return result switch
-                {
-                    0 => ParseJsonOutput(jsonOutput, errorOutput),
-                    2 => CreateErrorResult(
-                        "File access error: Could not open or read the CZI file.",
-                        errorOutput),
-                    4 => CreateErrorResult(
-                        "One or more requested checks are not available.",
-                        errorOutput),
-                    _ => CreateErrorResult(
-                        $"Validation failed with error code {result}.",
-                        errorOutput)
-                };
             }
         }
 
-        // This should never be reached, but just in case
-        throw new InvalidOperationException("Failed to validate file after retries.");
+        // Convert buffers to strings
+        string? jsonOutput = null;
+        string? errorMessage = null;
+
+        if (outputBufferSize > 0 && validatorReturnValue == Result.Success)
+        {
+            jsonOutput = GetUtf8StringFromBuffer(this.outputStringBuffer);
+        }
+
+        if (errorMessageLength > 0)
+        {
+            errorMessage = GetUtf8StringFromBuffer(this.errorMessageBuffer);
+        }
+
+        return ParseJsonOrThrow(
+            cziFilePath,
+            validatorReturnValue,
+            jsonOutput,
+            errorMessage);
+    }
+
+    private static unsafe FileResult ParseJsonOrThrow(
+        string cziFilePath,
+        Result validatorReturnValue,
+        string? jsonOutput,
+        string? errorMessage)
+    {
+        // Handle different result codes
+        return validatorReturnValue switch
+        {
+            Result.Success =>
+                FileResultDto
+                .FromJson(jsonOutput ?? string.Empty, errorMessage)
+                .ToResultFor(cziFilePath),
+            Result.FileAccessError =>
+                throw new IOException(
+                    $"File access error: Could not open or read the CZI file {cziFilePath}. {errorMessage}"),
+            Result.UnsupportedCheck =>
+                throw new InvalidOperationException(
+                    "One or more requested checks are not available. " + errorMessage),
+            _ =>
+                throw new InvalidOperationException(
+                    $"Validation failed with unknown error code {validatorReturnValue}. {errorMessage}")
+        };
     }
 
     private static string GetUtf8StringFromBuffer(byte[] buffer)
@@ -174,26 +196,11 @@ public class CziChecker(Configuration configuration) : IDisposable
         return Encoding.UTF8.GetString(buffer, 0, length);
     }
 
-    private static CziCheckResult ParseJsonOutput(
-        string? jsonOutput,
-        string? errorOutput)
-    {
-        if (string.IsNullOrWhiteSpace(jsonOutput))
-        {
-            return CreateErrorResult(
-                "No output received from validation.",
-                errorOutput);
-        }
-
-        return CziCheckResult.FromJson(jsonOutput, errorOutput);
-    }
-
     /// <summary>
     /// Disposes the CziChecker and releases native resources.
     /// </summary>
     public void Dispose()
     {
         this.validator.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

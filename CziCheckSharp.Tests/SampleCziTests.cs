@@ -17,7 +17,7 @@ using System.Text.Json;
 public class SampleCziTests
 {
     // From $(repo)/CZICheck/CMakeLists.txt
-    private static readonly string[] TestDataRepos = 
+    private static readonly string[] TestDataRepos =
     [
         "https://libczirwtestdata.z13.web.core.windows.net/CZICheckSamples/MD5/",
         "https://github.com/ptahmose/libCZI_testdata/raw/main/MD5/",
@@ -36,6 +36,26 @@ public class SampleCziTests
         _ = testData.Should().NotBeEmpty();
     }
 
+    /// <summary>
+    /// Tests that the code snippets in the README compile and run without errors.
+    /// </summary>
+    [Fact]
+    public void ReadmeCodeHasNoErrors()
+    {
+        var testData = GetSampleCziTestData();
+        
+        string file = testData.First()[0].ToString()!;
+        
+        var act1 = () => ReadmeExamples.CheckAndPrintResult(file);
+        _ = act1.Should().NotThrow();
+
+        var act2 = () => ReadmeExamples.Configuration(file);
+        _ = act2.Should().NotThrow();
+
+        var act3 = ReadmeExamples.GetVersion;
+        _ = act3.Should().NotThrow();
+    }
+
     [Theory]
     [MemberData(nameof(GetSampleCziTestData))]
     public async Task RunAll(
@@ -49,7 +69,7 @@ public class SampleCziTests
         await Ensure(cziFilePath, md5);
         _ = GetFileMd5(cziFilePath).Should().Be(md5);
 
-        CziCheckResult actual;
+        FileResult actual;
         var config = new Configuration
         {
             LaxParsing = true,
@@ -63,9 +83,9 @@ public class SampleCziTests
         }
 
         // ASSERT
-        var expected = CziCheckResult.FromJson(
-            expectedJsonContent,
-            actual.ErrorOutput); // We don't have an expected error output
+        var expected = FileResult.FromJson(
+            cziFilePath,
+            expectedJsonContent);
 
         try
         {
@@ -136,18 +156,12 @@ public class SampleCziTests
     {
         if (File.Exists(cziFilePath))
         {
-            // Verify MD5 if file exists
-            var actualMd5 = GetFileMd5(cziFilePath);
-            if (!string.Equals(actualMd5, md5, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException($"MD5 mismatch for existing file: {cziFilePath}. Expected: {md5}, Actual: {actualMd5}");
-            }
             return;
         }
 
         // Try each base URL until one succeeds
         Exception? lastException = null;
-        
+
         foreach (var baseUrl in TestDataRepos)
         {
             try
@@ -157,7 +171,7 @@ public class SampleCziTests
                 {
                     Timeout = TimeSpan.FromMinutes(1)
                 };
-                
+
                 using var response = await httpClient.GetAsync(url);
                 _ = response.EnsureSuccessStatusCode();
 
@@ -184,10 +198,10 @@ public class SampleCziTests
                 // Continue to next URL (timeout or cancellation)
             }
         }
-        
+
         // If we get here, all URLs failed
         throw new InvalidOperationException(
-            $"Failed to download file from any base URL for MD5: {md5}", 
+            $"Failed to download file from any base URL for MD5: {md5}",
             lastException);
     }
 

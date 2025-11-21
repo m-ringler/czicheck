@@ -1,16 +1,16 @@
 # CziCheckSharp
 
-A .NET wrapper for CZICheck, providing validation and checking capabilities for CZI (Carl Zeiss Image) files through a native P/Invoke interface.
+A .NET wrapper for CZICheck, providing validation and checking capabilities for CZI (Carl Zeiss Image) files.
+
+For the time being, this is not a ZEISS product, and there is no support by ZEISS.
 
 ## Overview
 
-CziCheckSharp provides a type-safe C# API for validating CZI files using the native CZICheck library. It wraps the C API (`libczicheckc`) and provides:
+CziCheckSharp provides a type-safe C# API for validating CZI files using the native CZICheck library. It provides:
 
 - Structured validation results with detailed findings
 - Configurable validation checks
-- JSON output parsing
-- Proper resource management through `IDisposable`
-- **Cross-platform support** with native libraries bundled for Windows (x64) and Linux (x64)
+- Cross-platform support with native libraries bundled for Windows (x64) and Linux (x64)
 
 ## Installation
 
@@ -30,19 +30,23 @@ var configuration = new Configuration();
 using var checker = new CziChecker(configuration);
 
 // Validate a CZI file
-var result = checker.Check("sample.czi");
+FileResult result = checker.Check(file);
 
 // Check validation status
-if (result.OverallResult == "✔")
+if (result.FileStatus == CheckStatus.Ok)
 {
     Console.WriteLine("Validation passed!");
 }
 else
 {
-    Console.WriteLine($"Validation issues found:");
-    foreach (var checkerResult in result.CheckerResults)
+    Console.WriteLine($"Validation issues found in file {result.File}:");
+    foreach (var checkResult in result.CheckResults.Where(x => x.Status != CheckStatus.Ok))
     {
-        Console.WriteLine($"  {checkerResult.CheckName}: {checkerResult.Summary}");
+        Console.WriteLine($"  {checkResult.Check}: {checkResult.Status}");
+        foreach (var finding in checkResult.Findings)
+        {
+            Console.WriteLine($"    {finding.Severity}: {finding.Description}");
+        }
     }
 }
 ```
@@ -65,14 +69,14 @@ Customize which checks to run and how they behave:
 ```csharp
 var configuration = new Configuration
 {
-    Checks = Checks.Default,           // Or Checks.All, or specific flags
-    MaxFindings = 100,                 // Limit findings per check (-1 for unlimited)
-    LaxParsing = false,                // Enable tolerant CZI parsing
-    IgnoreSizeM = false                // Ignore M dimension for pyramid subblocks
+    Checks = Checks.Default, // Or Checks.All, or specific flags
+    MaxFindings = 100,       // Limit findings per check (-1 for unlimited)
+    LaxParsing = false,      // Enable tolerant CZI parsing
+    IgnoreSizeM = false      // Ignore M dimension for pyramid subblocks
 };
 
 using var checker = new CziChecker(configuration);
-var result = checker.Check("file.czi");
+var result = checker.Check(file);
 ```
 
 ### Available Checks
@@ -100,33 +104,6 @@ Checks.All        // All available checks
 Checks.OptIn      // Only the opt-in checks
 ```
 
-## Results
-
-The `CziCheckResult` class provides:
-
-```csharp
-public class CziCheckResult
-{
-    public string? OverallResult { get; set; }           // "✔" or "❌"
-    public List<CheckerResult> CheckerResults { get; set; }
-    public string? Version { get; set; }
-    public string? ErrorOutput { get; set; }
-}
-
-public class CheckerResult
-{
-    public string? CheckName { get; set; }
-    public string? Summary { get; set; }
-    public List<Finding>? Findings { get; set; }
-}
-
-public class Finding
-{
-    public string? Severity { get; set; }
-    public string? Information { get; set; }
-}
-```
-
 ## Advanced: Custom Native Library Path
 
 In most cases, the bundled native libraries work automatically. However, if you need to use a custom-built native library or specify a different location, you can use `NativeLibrary.SetDllImportResolver`:
@@ -134,80 +111,25 @@ In most cases, the bundled native libraries work automatically. However, if you 
 ```csharp
 using System.Runtime.InteropServices;
 
-NativeLibrary.SetDllImportResolver(typeof(CziChecker).Assembly, (libraryName, assembly, searchPath) =>
-{
-    if (libraryName == "libczicheckc")
+NativeLibrary.SetDllImportResolver(
+    typeof(CziChecker).Assembly,
+    (libraryName, assembly, searchPath) => libraryName switch
     {
         // Load from custom path
-        return NativeLibrary.Load("/custom/path/to/libczicheckc.so");
-    }
-    return IntPtr.Zero;
-});
+        "libczicheckc" => NativeLibrary.Load("/custom/path/to/libczicheckc.so"),
+        _ => IntPtr.Zero,
+    });
 ```
 
 ### Building the Native Library
 
-If you need to build the native library yourself (e.g., for unsupported platforms):
+If you need to build the native library yourself (e.g., for unsupported platforms)
+consult the [CZICheck building documentation](https://github.com/m-ringler/czicheck/blob/main/documentation/building.md).
 
-```bash
-# Clone the repository
-git clone https://github.com/ZEISS/czicheck.git
-cd czicheck
-
-# Build with CMake (example for Windows)
-cmake --preset x64-Debug
-cmake --build out/build/x64-Debug
-
-# The library will be in: out/build/x64-Debug/CZICheck/capi/
-```
-
-See the [CZICheck building documentation](https://github.com/ZEISS/czicheck/blob/main/documentation/building.md) for more details.
-
-## API Reference
-
-### CziChecker Class
-
-```csharp
-public class CziChecker : IDisposable
-{
-    // Constructor
-    public CziChecker(Configuration configuration);
-    
-    // Methods
-    public CziCheckResult Check(string cziFilePath);
-    public static string GetVersion();
-    
-    // Properties
-    public Configuration Configuration { get; }
-    public bool IsDisposed { get; }
-}
-```
-
-### Configuration Class
-
-```csharp
-public class Configuration
-{
-    public Checks Checks { get; init; } = Checks.Default;
-    public int MaxFindings { get; init; } = -1;
-    public bool LaxParsing { get; init; } = false;
-    public bool IgnoreSizeM { get; init; } = false;
-}
-```
 
 ## Error Handling
 
-The library handles errors through the `ErrorOutput` property of `CziCheckResult`:
-
-```csharp
-var result = checker.Check("file.czi");
-
-if (!string.IsNullOrEmpty(result.ErrorOutput))
-{
-    Console.WriteLine($"Error: {result.ErrorOutput}");
-}
-```
-
+The library handles errors by throwing exceptions.
 Common error scenarios:
 - **File not found**: Check the file path
 - **DllNotFoundException**: This should not occur with the NuGet package as native libraries are bundled. If it does occur, ensure you're using a supported platform (Windows x64 or Linux x64)
@@ -218,17 +140,17 @@ Common error scenarios:
 Get the version of the underlying CZICheck library:
 
 ```csharp
-string version = CziChecker.GetVersion();
+string version = CziChecker.GetCziCheckVersion();
 Console.WriteLine($"CZICheck version: {version}");
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/ZEISS/czicheck/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/m-ringler/czicheck/blob/main/LICENSE) file for details.
 
 ## Links
 
-- [CZICheck Repository](https://github.com/ZEISS/czicheck)
-- [CZICheck Documentation](https://github.com/ZEISS/czicheck/tree/main/documentation)
-- [Description of Checkers](https://github.com/ZEISS/czicheck/blob/main/documentation/description_of_checkers.md)
-- [Version History](https://github.com/ZEISS/czicheck/blob/main/documentation/version-history.md)
+- [CZICheck Repository](https://github.com/m-ringler/czicheck)
+- [CZICheck Documentation](https://github.com/m-ringler/czicheck/tree/main/documentation)
+- [Description of Checkers](https://github.com/m-ringler/czicheck/blob/main/documentation/description_of_checkers.md)
+- [Version History](https://github.com/m-ringler/czicheck/blob/main/documentation/version-history.md)
