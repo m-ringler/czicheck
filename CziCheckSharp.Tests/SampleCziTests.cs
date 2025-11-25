@@ -40,11 +40,13 @@ public class SampleCziTests
     /// Tests that the code snippets in the README compile and run without errors.
     /// </summary>
     [Fact]
-    public void ReadmeCodeHasNoErrors()
+    public async Task ReadmeCodeHasNoErrors()
     {
         var testData = EnumerateSampleCziTestData();
         
-        string file = testData.First().cziFilePath;
+        var td = testData.First();
+        string file = td.cziFilePath;
+        await Ensure(file, td.md5);
         
         var act1 = () => ReadmeExamples.CheckAndPrintResult(file);
         _ = act1.Should().NotThrow();
@@ -138,7 +140,7 @@ public class SampleCziTests
         // Find all .czi.md5 files
         var md5Files = Directory.GetFiles(cziCheckSamplesPath, "*.czi.md5");
 
-        foreach (var md5File in md5Files)
+        foreach (var md5File in md5Files.OrderBy(x => x, StringComparer.InvariantCultureIgnoreCase))
         {
             // Get the base name (without .czi.md5 extension)
             var baseName = Path.GetFullPath(md5File[..^".czi.md5".Length]);

@@ -4,7 +4,7 @@ This project contains unit tests for the CziCheckSharp library, which provides a
 
 ## Overview
 
-The tests validate that the C# wrapper correctly calls the native `libczicheckc` library and properly handles validation results. The test suite includes:
+The tests verify that the C# wrapper correctly calls the native `libczicheckc` library and properly handles validation results. The test suite includes:
 
 - **CziCheckerTests.cs** - Unit tests for the CziChecker class functionality
 - **SampleCziTests.cs** - Integration tests that validate actual CZI files against expected results
@@ -17,11 +17,17 @@ The test project requires the native CZICheck C API library to be built before r
 
 The project is configured to copy native libraries from the path specified by the `CziCheckNativeLibraryPath` MSBuild property in `CziCheckSharp.Tests.csproj`:
 
+**On Windows:**
 ```xml
-<CziCheckNativeLibraryPath>..\..\out\build\x64-Debug\CZICheck\capi</CziCheckNativeLibraryPath>
+<CziCheckNativeLibraryPath>..\.\out\build\x64-Debug\CZICheck\capi</CziCheckNativeLibraryPath>
 ```
 
-This corresponds to the CMake build output directory when using the `x64-Debug` configuration (see `CMakeSettings.json` in the repository root).
+**On other OS (Linux):**
+```xml
+<CziCheckNativeLibraryPath>../build/CZICheck/capi</CziCheckNativeLibraryPath>
+```
+
+This corresponds to the CMake build output directory when using the `x64-Debug` configuration.
 
 The following files are copied to the test output directory:
 - `*.dll` - Native library (Windows)
@@ -30,31 +36,7 @@ The following files are copied to the test output directory:
 
 ### Building the Native Library
 
-Before running the tests, ensure you've built the native CZICheck library:
-
-1. Open the solution in Visual Studio
-2. Build the CMake project using the `x64-Debug` configuration
-3. The native library will be output to `out\build\x64-Debug\CZICheck\capi\`
-
-Alternatively, use the CMake command line:
-
-```powershell
-cmake --preset x64-Debug
-cmake --build out/build/x64-Debug
-```
-
-### CMake Configuration
-
-The expected build output path is defined in `CMakeSettings.json`:
-
-```json
-{
-  "name": "x64-Debug",
-  "configurationType": "Debug",
-  "buildRoot": "${projectDir}\\out\\build\\${name}",
-  ...
-}
-```
+Follow the instructions in [the CZICheck build documentation](../documentation/building.md), using `Debug` instead of `Release`.
 
 If you use a different CMake configuration or build directory, update the `<CziCheckNativeLibraryPath>` property in `CziCheckSharp.Tests.csproj` to point to your build output directory.
 
@@ -76,13 +58,15 @@ dotnet build -p:CziCheckNativeLibraryPath="path\to\your\native\libs"
 dotnet test
 ```
 
-Or use Visual Studio's Test Explorer.
-
 ## Troubleshooting
 
 **DllNotFoundException**: If you see this error, the native library wasn't found. Ensure:
 1. The native CZICheck library has been built
-2. The build output path in the `.csproj` matches your CMake build directory
+2. The `CziCheckNativeLibraryPath` matches your CMake build directory
 3. The native library files were copied to the test output directory
 
 **Memory Access Violations**: Ensure you're using debug symbols (`.pdb`) and that the native library version matches the C# wrapper's expectations.
+
+**HTTP Errors**: The tests download sample CZI files over the internet. Make
+sure that you have internet access and allow these requests to pass through
+your firewall.

@@ -8,7 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true'">$(MSBuildThisFileDirectory)..\..\czicheck\out\build\x64-Debug\CZICheck\capi</CziCheckNativeLibraryPath>
+    <!-- Default native library path: different defaults for Windows vs non-Windows hosts -->
+    <!-- Prefer the MSBuild IsOSPlatform() property function rather than relying on $(OS) -->
+    <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true' AND $([MSBuild]::IsOSPlatform('Windows'))">$(MSBuildThisFileDirectory)..\out\build\x64-Debug\CZICheck\capi</CziCheckNativeLibraryPath>
+    <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true'">$(MSBuildThisFileDirectory)../build/CZICheck/capi</CziCheckNativeLibraryPath>
     <CziCheckSharpVersion Condition="'$(CziCheckSharpVersion)' == ''">*-*</CziCheckSharpVersion>
   </PropertyGroup>
 
@@ -47,9 +50,10 @@
 
   <!-- Copy native libraries when using ProjectReference (local dev) -->
   <ItemGroup Condition="'$(UseNuGetPackage)' != 'true' AND '$(CziCheckNativeLibraryPath)' != ''">
-    <None Include="$(CziCheckNativeLibraryPath)\*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(CziCheckNativeLibraryPath)\*.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(CziCheckNativeLibraryPath)\*.pdb" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Use forward-slash separators so the include patterns work on both Windows and Unix hosts -->
+    <None Include="$(CziCheckNativeLibraryPath)/*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(CziCheckNativeLibraryPath)/*.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(CziCheckNativeLibraryPath)/*.pdb" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- When using PackageReference, native libs come from NuGet package automatically -->
