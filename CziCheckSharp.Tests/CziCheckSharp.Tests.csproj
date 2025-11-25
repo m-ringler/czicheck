@@ -11,7 +11,7 @@
     <!-- Default native library path: different defaults for Windows vs non-Windows hosts -->
     <!-- Prefer the MSBuild IsOSPlatform() property function rather than relying on $(OS) -->
     <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true' AND $([MSBuild]::IsOSPlatform('Windows'))">$(MSBuildThisFileDirectory)..\out\build\x64-Debug\CZICheck\capi</CziCheckNativeLibraryPath>
-    <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true' AND !$([MSBuild]::IsOSPlatform('Windows'))">$(MSBuildThisFileDirectory)..\build/CZICheck/capi</CziCheckNativeLibraryPath>
+    <CziCheckNativeLibraryPath Condition="'$(CziCheckNativeLibraryPath)' == '' AND '$(UseNuGetPackage)' != 'true'">$(MSBuildThisFileDirectory)../build/CZICheck/capi</CziCheckNativeLibraryPath>
     <CziCheckSharpVersion Condition="'$(CziCheckSharpVersion)' == ''">*-*</CziCheckSharpVersion>
   </PropertyGroup>
 
